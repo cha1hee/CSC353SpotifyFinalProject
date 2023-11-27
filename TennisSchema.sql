@@ -2,35 +2,31 @@ DROP SCHEMA IF EXISTS tennishw3;
 CREATE SCHEMA tennishw3;
 USE tennishw3;
 
-DROP TABLE IF EXISTS player;
-CREATE TABLE player
-	(id 		INT,
-	 name		VARCHAR(33),
-	 country	VARCHAR(3),
-	 hand		CHAR(1) CONSTRAINT player_check_hand CHECK(hand = 'R' OR hand = 'L' OR hand = 'U' OR hand = 'A'),
-	 height		INT CONSTRAINT player_check_height CHECK(height >= 0),
-	 PRIMARY KEY (id)
+DROP TABLE IF EXISTS user;
+CREATE TABLE user
+	(username		VARCHAR(33),
+	 name			VARCHAR(33),
+	 PRIMARY KEY (username)
 	);
 
-DROP TABLE IF EXISTS tournament;
-CREATE TABLE tournament
+DROP TABLE IF EXISTS song;
+CREATE TABLE song
 	(id				VARCHAR(36),
-	 name			VARCHAR(40),
-	 tourn_level	CHAR(1),
-	 tourn_date		DATE,
+	 title			VARCHAR(40),
+	 artist			VARCHAR(30),
+	 album			VARCHAR(30),
+	 release_date	DATE,
+	 -- all the attributes
 	 PRIMARY KEY (id)
 	);
 
-DROP TABLE IF EXISTS matchinfo;
-CREATE TABLE matchinfo
-	(match_id		VARCHAR(37),
-	 tourney_id		VARCHAR(36),
-	 surface		VARCHAR(10),
-	 score			VARCHAR(34),
-	 num_sets		INT CHECK(num_sets >= 0),
-	 rounds			VARCHAR(4),
+DROP TABLE IF EXISTS playlist;
+CREATE TABLE playlist
+	(id				VARCHAR(36),
+	 playlist_name	VARCHAR(36),
+	 username		VARCHAR(33),
 	 PRIMARY KEY(match_id),
-	 FOREIGN KEY (tourney_id) REFERENCES tournament (id) ON DELETE CASCADE
+	 FOREIGN KEY (username) REFERENCES user (username) ON DELETE CASCADE
 	);
 
 DROP TABLE IF EXISTS plays;
