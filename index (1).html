@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>My First Webpage</title>
+	<meta charset="utf-8">
+	<!-- You can also define the contents of the file inside a <style> tag -->
+	<link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+	<!-- We will populate this list via the database, see Javascript code below -->
+
+	<ul id="myList">
+	</ul>
+
+	<p> First way of getting dynamic content: Javascript fetch API </p>
+	<button onclick="fetchData()"> Click to display students </button>
+
+	<hr>
+
+	<p> First way of getting dynamic content: HTML forms </p>
+	<!-- <form action="/player" id="playerForm" method="GET">
+		<label for="name">Full Name:</label>
+		<br>
+		<input type="text" id="name" name="name" placeholder="(required)" required><br>
+
+		<label for="id">ID:</label>
+		<br>
+		<input type="text" id="lname" name="lname" placeholder="(optional)"><br>
+
+		<label for="lname">Telephone:</label>
+		<br>
+		<input type="text" id="phone" name="phone" placeholder="555-555-1234"
+			pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" required>
+
+		<br>
+		<br>
+
+		<input type="submit" value="Submit">
+	</form> -->
+
+	<div id="player-input-section">
+		<label for="name">Full Name:</label>
+		<br>
+		<!-- Use "value" instead of "placeholder" for a default entered value -->
+		<!-- Note the required attribute here, but not in the last name -->
+		<!-- id is the local name for DOM manipulation; name is the name posted to the server -->
+		<input type="text" id="name" name="name" placeholder="(required)" required><br>
+
+		<br>
+		<br>
+
+		<button onclick="fetchPlayerData()">Show Player Information</button>
+	</div>
+
+	<hr>
+	
+	<div id="tournament-input-section">
+		<label for="tourn_date">Year:</label>
+		<br>
+		<input type="text" id="tourn_date" name="tourn_date" placeholder="(required)" required><br>
+		<button onclick="fetchTournamentData()">Show Tournaments</button>
+
+		<br>
+		<br>
+	</div>
+	<div id="statistics-input-section">
+		<label for="player-name">Name:</label>
+		<br>
+		<input type="text" id="player-name" name="player-name" placeholder="(required)" required><br>
+		<br>
+		<label for="start-date">Start Date:</label>
+		<br>
+		<input type="text" id="start-date" name="start-date" placeholder="YYYY-MM-DD" required><br>
+		<br>
+		<label for="end-date">End Date:</label>
+		<br>
+		<input type="text" id="end-date" name="end-date" placeholder="YYYY-MM-DD" required><br>
+		<br>
+
+		<button onclick="fetchAggregateStatistics()">Show Statistics</button>
+	</form>
+
+	<hr>
+
+	<div id="player-table-section" class="table-container">
+		<table id="player-table" class="data-table">
+			<thead>
+				<tr>
+					<th>Player ID</th>
+					<th>Name</th>
+					<th>Country</th>
+					<th>Hand</th>
+					<th>Height</th>
+				</tr>
+			</thead>
+			<tbody id="player-table-body"></tbody>
+		</table>
+	</div>
+	<div id="tournament-table-section" class="table-container">
+		<table id="tournament-table" class="data-table">
+			<thead>
+				<tr>
+					<th><button id="tourn-id-header" onclick="sortTournamentDataByAttribute('id', 'asc')">Tournament ID</button></th>
+					<th><button id="tourn-name-header" onclick="sortTournamentDataByAttribute('name', 'asc')">Name</button></th>
+					<th><button id="tourn-level-header" onclick="sortTournamentDataByAttribute('tourn_level', 'asc')">Level</button></th>
+					<th><button id="tourn-date-header" onclick="sortTournamentDataByAttribute('tourn_date', 'asc')">Date</button></th>
+				</tr>
+			</thead>
+			<tbody id="tournament-table-body"></tbody>
+		</table>
+	</div>
+	<div id="statistics-table-section" class="table-container">
+		<table id="statistics-table" class="data-table">
+			<thead>
+				<tr>
+					<th><button id="statistics-name-header">Player Name</button></th>
+					<th><button id="statistics-aces-header">Aces</button></th>
+					<th><button id="statistics-df-header">Double Faults</button></th>
+					<th><button id="statistics-fstIn-header">First In</button></th>
+					<th><button id="statistics-first-won-header">First Won</button></th>
+					<th><button id="statistics-second-won-header">Second Won</button></th>
+					<th><button id="statistics-break-pts-saved-header">Break Points Saved</button></th>
+					<th><button id="statistics-break-pts-faced-header">Break Points Faced</button></th>
+				</tr>
+			</thead>
+			<tbody id="statistics-table-body"></tbody>
+		</table>
+	</div>
+	<hr>
+	<!-- <form action="/statistics" id="statisticsForm" method="GET">
+		<label for="player_name">Name:</label>
+		<br>
+		<input type="text" id="player_name" name="player_name" placeholder="(required)" required><br>
+		<br>
+		<label for="start_date">Start Date:</label>
+		<br>
+		<input type="text" id="start_date" name="start_date" placeholder="(required)" required><br>
+		<br>
+		<label for="end_date">entered Date:</label>
+		<br>
+		<input type="text" id="end_date" name="end_date" placeholder="(required)" required><br>
+		<br>
+
+		<input type="submit" value="Submit">
+	</form> -->
+
+</body>
+
+<script>
+	// const playerTableBody = document.getElementById("player-table-body");
+	// var tournamentTableBody = document.getElementById("tournament-table-body");
+	var tournamentQueryData;
+	// const statisticsTableBody = document.getElementById("statistics-table-body");
+	// const playerForm = document.getElementById("playerForm");
+	// const tournamentForm = document.getElementById("tournamentForm");
+	
+	// playerForm.addEventListener("submit", fetchPlayerData);
+	// tournamentForm.addEventListener("submit", fetchTournamentData);
+
+	function createRow(tuple) {
+		const row = document.createElement("tr");
+		const tupleKeys = Object.keys(tuple);
+		tupleKeys.map((key) => {
+			const cell = document.createElement("td");
+			cell.setAttribute = ("data-attr", key);
+			cell.innerHTML = tuple[key];
+			row.appendChild(cell);
+		});
+		return row;
+	}
+
+	/*
+	function populateTournamentTable(data) {
+		data.map((tuple) => {
+			const row = createTableRow(tuple);
+			tournamentTableBody.appendChild(row);
+		});
+	}*/
+	
+		/*const sortTournamentData = (results, param, direction) => {
+			tournamentTableBody.innerHTML = '';
+			const sortedData = direction == "asc" 
+			? [...results].sort(function (a, b) {
+				if (a[param] > b[param]) {
+					return 1;
+				}
+				return 0;
+			})
+			: [...results].sort(function(a, b) {
+				if (b[param] < a[param]) {
+					return -1;
+				}
+				if (b[param] < a[param]) {
+					return 1;
+				}
+				return 0;
+			});
+
+			populateTournamentTable(sortedData);
+		}*/
+	
+
+	/*function populatePlayerTableAfterFetch(results) {
+		const populatePlayerTable = (results) => {
+			results.map((tuple) => {
+				const row = createTableRow(tuple);
+				playerTableBody.appendChild(row);
+			});
+		};
+	}
+	*/
+	/*
+	function populateStatisticsTableAfterFetch(results) {
+		const populateStatisticsTable = (results) => {
+			results.map((tuple) => {
+				const row = createTableRow(tuple);
+				statisticsTableBody.appendChild(row);
+			});
+		};
+	}*/
+
+	function fetchPlayerData() {
+		let playerName = document.getElementById("name").value;
+		let searchParams = "/player?" + new URLSearchParams({name: playerName});
+
+		const responsePromise = fetch(searchParams, {
+			method: "GET",
+			headers: {
+				"Content-type": "application/json; charset=UTF-8"
+			}
+		});
+		responsePromise.then(
+			// Fulfilled
+			async (response) => {
+				document.getElementById("player-table").style.visibility = "visible";
+				populatePlayerPageTable(await response.json())
+			},
+			// Error
+			(error) => {
+				alert("Cannot obtain player information")
+			})
+	}
+
+	function fetchTournamentData() {
+		let tournamentYear = document.getElementById("tourn_date").value;
+		let searchParams = "/tournament?" + new URLSearchParams({tourn_date: tournamentYear});
+
+		const responsePromise = fetch(searchParams, {
+			method: "GET",
+			headers: {
+				"Content-type": "application/json; charset=UTF-8"
+			}
+		});
+		responsePromise.then(
+			// Fulfilled
+			async (response) => {
+				document.getElementById("tournament-table").style.visibility = "visible";
+				tournamentQueryData = await response.json();
+				populateTournamentPageTable(tournamentQueryData);
+				/*populateTournamentTableAfterFetch(await response.json());
+				[...tableButtons].map((button => {
+					button.addEventListener("click", (event) => {
+						if (event.target.getAttribute("data-dir") == "desc") {
+							sortData(response.json(), event.target.id, "desc");
+							event.target.setAttribute("data-dir", "asc");
+						} 
+						else {
+							sortData(response.json(), event.target.id, "asc");
+							event.target.setAttribute("data-dir", "desc");
+						}
+					});
+				})); */
+			},
+			// Error
+			(error) => {
+				alert("Cannot obtain tournaments")
+			})
+	}
+
+	function fetchAggregateStatistics() {
+		let name = document.getElementById("player-name").value;
+		let startDate = document.getElementById("start-date").value;
+		let endDate = document.getElementById("end-date").value;
+		let searchParams = "/statistics?" + new URLSearchParams({player_name: name, start_date: startDate, end_date: endDate});
+
+		const responsePromise = fetch(searchParams, {
+			method: "GET",
+			headers: {
+				"Content-type": "application/json; charset=UTF-8"
+			}
+		});
+		responsePromise.then(
+			// Fulfilled
+			async (response) => {
+				document.getElementById("statistics-table").style.visibility = "visible";
+				populateStatsPageTable(await response.json());
+			},
+			// Error
+			(error) => {
+				alert("Cannot obtain tournaments")
+			})
+	}
+
+	function populatePlayerPageTable(results) {
+
+		// const playerTable = document.createElement('table');
+		//playerTable.id = 'playerTable';
+		//const playerTableBody = document.createElement('tbody');
+		//const headerRow = document.createElement('tr');
+		//const idHeaderCell = document.createElement('th').appendChild(document.createTextNode('Player ID'));
+		//headerRow.appendChild(idHeaderCell);
+		//const nameHeaderCell = document.createElement('th').appendChild(document.createTextNode('Name'));
+		//headerRow.appendChild(nameHeaderCell);
+		//const countryHeaderCell = document.createElement('th').appendChild(document.createTextNode('Country'));
+		//headerRow.appendChild(countryHeaderCell);
+		//const handHeaderCell = document.createElement('th').appendChild(document.createTextNode('Hand'));
+		//headerRow.appendChild(handHeaderCell);
+		//const heightHeaderCell = document.createElement('th').appendChild(document.createTextNode('Height'));
+		//headerRow.appendChild(heightHeaderCell);
+		//playerTableBody.appendChild(headerRow);
+		// const idHeaderCell = document.createElement('th').appendChild(document.createTextNode('Player ID'));
+		// const idHeaderCellText = document.createTextNode('Player ID');
+		const playerTableBody = document.getElementById("player-table-body");
+
+		results.forEach(element => {
+			let row = document.createElement('tr');
+			const cell = document.createElement('td');
+			for(attribute in element) {
+				// const header = document.createElement('th').appendChild(document.createTextNode(attribute));
+				// const headerText = document.createTextNode(attribute);
+				// header.appendChild(headerText);
+				// row.appendChild(header);
+				const cell = document.createElement('td');
+				const cellText = document.createTextNode(element[attribute]);
+				cell.appendChild(cellText);
+				// const cellText = document.createTextNode(element[attribute]);
+				// cell.appendChild(cellText);
+				row.appendChild(cell);
+			}
+			playerTableBody.appendChild(row);
+			//playerTable.append(playerTableBody);
+			//document.body.appendChild(playerTable);
+		})
+	}
+
+	// make a better table and maybe make buttons to sort the table by one of the characteristics??
+	// shouldn't be too hard, js has some sort functions
+	function populateTournamentPageTable(results) {
+		const tournamentTableBody = document.getElementById('tournament-table-body');
+		tournamentTableBody.innerHTML = '';
+		/*tournamentTable.id = 'tournamentTable';
+		const tournamentTableBody = document.createElement('tbody');
+		const headerRow = document.createElement('tr');
+		for(attributeName in results[0]) {
+			let headerCell = document.createElement('th');
+			let headerCellText = document.createTextNode(attributeName);
+			headerCell.appendChild(headerCellText);
+			headerRow.appendChild(headerCell);
+		}
+		tournamentTableBody.appendChild(headerRow);*/
+		results.forEach(element => {
+			let row = document.createElement('tr');
+			const cell = document.createElement('td');
+			for(attribute in element) {
+				const cell = document.createElement('td');
+				const cellText = document.createTextNode(element[attribute]);
+				cell.appendChild(cellText);
+				row.appendChild(cell);
+			}
+			tournamentTableBody.appendChild(row);
+			//tournamentTable.append(tournamentTableBody);
+			//document.body.appendChild(tournamentTable);
+		})
+	}
+
+	function sortTournamentDataByAttribute(attribute, direction) {
+		if (tournamentQueryData != undefined) {
+			const tournamentTableBody = document.getElementById('tournament-table-body');
+			var sortedData;
+			if (direction == 'asc') {
+				sortedData = [...tournamentQueryData].sort(function (a, b) {
+					// something is wrong with this comparison function – it's just returning 0 (claims order doesnt matter)
+					if (a[attribute] > b[attribute]) {
+						return 1;
+					}
+					return 0;
+				});
+			}
+			else { 
+				sortedData = [...tournamentQueryData].sort(function(a, b) {
+					if (b[attribute] < a[attribute]) {
+						return -1;
+					}
+					if (b[attribute] < a[attribute]) {
+						return 1;
+					}
+					return 0;
+				});
+			}
+			populateTournamentPageTable(sortedData);
+		}
+	}
+
+	function populateStatsPageTable(results) {
+		const statsTableBody = document.getElementById('statistics-table-body');
+		results.forEach(element => {
+			let row = document.createElement('tr');
+			const cell = document.createElement('td');
+			for(attribute in element) {
+				const cell = document.createElement('td');
+				const cellText = document.createTextNode(element[attribute]);
+				cell.appendChild(cellText);
+				row.appendChild(cell);
+			}
+			statsTableBody.appendChild(row);
+		})
+	}
+
+
+	function fetchData() {
+		// example in debugger: 
+		// y = new URLSearchParams({name: 'Gustavo Kuerton', country 'BR'})
+		// will give you the correct encoding of the search request!
+		// get the inputs, then use URLSearchParams to get a string with the correct whitespace
+		// Code here that gets user input, puts it into URLSearchParams, then gets that string.
+		// then put that string into fetch (remember to append the correct table name beforehand)
+		const responsePromise = fetch("/player?id=100003", {
+			// example: in the fetch, do "student/?from=nov12 ... "
+			method: "GET",
+			headers: {
+				"Content-type": "application/json; charset=UTF-8"
+			}
+		});
+
+		responsePromise.then(
+			// Fulfilled
+			async (response) => {
+				populateList(await response.json())
+			},
+			// Error
+			(error) => {
+				alert("Cannot obtain students")
+			})
+		console.log('testing that it works for non list');
+	}
+
+	// For testing in the HTML world
+	// <!-- <button type="button" onclick="populateList([['a', 'b'], ['c', 'd']])"> -->
+	function populateList(results) {
+		let list = document.getElementById("myList")
+
+		// sent back from db, after query callback
+		results.forEach(element => {
+			let student = document.createElement("li")
+
+			student.innerText = element.name
+
+			list.appendChild(student)
+		})
+	}
+
+</script>
+
+</html>

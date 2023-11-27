@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<title>My First Webpage</title>
+	<meta charset="utf-8">
+
+	<!-- You can also define the contents of the file inside a <style> tag -->
+	<link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+	<!-- We will populate this list via the database, see Javascript code below -->
+
+	<ul id="myList">
+	</ul>
+
+	<p> First way of getting dynamic content: Javascript fetch API </p>
+	<button onclick="fetchData()"> Click to display students </button>
+
+	<hr>
+
+	<p> First way of getting dynamic content: HTML forms </p>
+	<!-- <form action="/player" id="playerForm" method="GET">
+		<label for="name">Full Name:</label>
+		<br>
+		<input type="text" id="name" name="name" placeholder="(required)" required><br>
+
+		<label for="id">ID:</label>
+		<br>
+		<input type="text" id="lname" name="lname" placeholder="(optional)"><br>
+
+		<label for="lname">Telephone:</label>
+		<br>
+		<input type="text" id="phone" name="phone" placeholder="555-555-1234"
+			pattern="[0-9]{3}-[0-9]{3}-[0-9]{4}" required>
+
+		<br>
+		<br>
+
+		<input type="submit" value="Submit">
+	</form> -->
+
+	<form action="/player" id="playerForm" method="GET">
+		<label for="name">Full Name:</label>
+		<br>
+		<!-- Use "value" instead of "placeholder" for a default entered value -->
+		<!-- Note the required attribute here, but not in the last name -->
+		<!-- id is the local name for DOM manipulation; name is the name posted to the server -->
+		<input type="text" id="name" name="name" placeholder="(required)" required><br>
+
+		<br>
+		<br>
+
+		<input type="submit" value="Submit">
+	</form>
+	
+	<form action="/tournament" id="tournamentForm" method="GET">
+		<label for="tourn_date">Year:</label>
+		<br>
+		<!-- Use "value" instead of "placeholder" for a default entered value -->
+		<!-- Note the required attribute here, but not in the last name -->
+		<!-- id is the local name for DOM manipulation; name is the name posted to the server -->
+		<input type="text" id="tourn_date" name="tourn_date" placeholder="(required)" required><br>
+
+		<br>
+		<br>
+
+		<input type="submit" value="Submit">
+	</form>
+
+</body>
+
+<script>
+	const playerForm = document.getElementById("playerForm");
+	const tournamentForm = document.getElementById("tournamentForm");
+	
+	playerForm.addEventListener("submit", fetchPlayerData);
+	tournamentForm.addEventListener("submit", fetchTournamentData);
+
+	function fetchPlayerData(event) {
+		let playerName = document.getElementById("name").value;
+		let searchParams = "/player?" + new URLSearchParams({name: playerName});
+
+		const responsePromise = fetch(searchParams, {
+			method: "GET",
+			headers: {
+				"Content-type": "application/json; charset=UTF-8"
+			}
+		});
+		responsePromise.then(
+			// Fulfilled
+			async (response) => {
+				populatePlayerPageTable(await response.json())
+			},
+			// Error
+			(error) => {
+				alert("Cannot obtain player information")
+			})
+	}
+
+	function fetchTournamentData(event) {
+		let tournamentYear = document.getElementById("tourn_date").value;
+		let searchParams = "/tournament?" + new URLSearchParams({tourn_date: tournamentYear});
+
+		const responsePromise = fetch(searchParams, {
+			method: "GET",
+			headers: {
+				"Content-type": "application/json; charset=UTF-8"
+			}
+		});
+		responsePromise.then(
+			// Fulfilled
+			async (response) => {
+				populateTournamentPageTable(await response.json())
+			},
+			// Error
+			(error) => {
+				alert("Cannot obtain tournaments")
+			})
+	}
+
+	function populatePlayerPageTable(results) {
+		const playerTable = document.createElement('table');
+		playerTable.id = 'playerTable';
+		const playerTableBody = document.createElement('tbody');
+
+		results.forEach(element => {
+			let row = document.createElement('tr');
+			const cell = document.createElement('td');
+			for(attribute in element) {
+				const header = document.createElement('th');
+				const headerText = document.createTextNode(attribute);
+				header.appendChild(headerText);
+				row.appendChild(header);
+				const cell = document.createElement('td');
+				const cellText = document.createTextNode(element[attribute]);
+				cell.appendChild(cellText);
+				row.appendChild(cell);
+			}
+			playerTableBody.appendChild(row);
+			playerTable.append(playerTableBody);
+			document.body.appendChild(playerTable);
+		})
+	}
+
+	function populateTournamentPageTable(results) {
+		const tournamentTable = document.createElement('table');
+		tournamentTable.id = 'tournamentTable';
+		const tournamentTableBody = document.createElement('tbody');
+		const headerRow = document.createElement('tr');
+		for(attributeName in results[0]) {
+			let headerCell = document.createElement('th');
+			let headerCellText = document.createTextNode(attributeName);
+			headerCell.appendChild(headerCellText);
+			row.appendChild(headerCell);
+		}
+		results.forEach(element => {
+			let row = document.createElement('tr');
+			const cell = document.createElement('td');
+			for(attribute in element) {
+				const cell = document.createElement('td');
+				const cellText = document.createTextNode(element[attribute]);
+				cell.appendChild(cellText);
+				row.appendChild(cell);
+			}
+			playerTableBody.appendChild(row);
+			playerTable.append(playerTableBody);
+			document.body.appendChild(playerTable);
+		})
+	}
+
+
+	function fetchData() {
+		// example in debugger: 
+		// y = new URLSearchParams({name: 'Gustavo Kuerton', country 'BR'})
+		// will give you the correct encoding of the search request!
+		// get the inputs, then use URLSearchParams to get a string with the correct whitespace
+		// Code here that gets user input, puts it into URLSearchParams, then gets that string.
+		// then put that string into fetch (remember to append the correct table name beforehand)
+		const responsePromise = fetch("/player?id=100003", {
+			// example: in the fetch, do "student/?from=nov12 ... "
+			method: "GET",
+			headers: {
+				"Content-type": "application/json; charset=UTF-8"
+			}
+		});
+
+		responsePromise.then(
+			// Fulfilled
+			async (response) => {
+				populateList(await response.json())
+			},
+			// Error
+			(error) => {
+				alert("Cannot obtain students")
+			})
+		console.log('testing that it works for non list');
+	}
+
+	// For testing in the HTML world
+	// <!-- <button type="button" onclick="populateList([['a', 'b'], ['c', 'd']])"> -->
+	function populateList(results) {
+		let list = document.getElementById("myList")
+
+		// sent back from db, after query callback
+		results.forEach(element => {
+			let student = document.createElement("li")
+
+			student.innerText = element.name
+
+			list.appendChild(student)
+		})
+	}
+
+</script>
+
+</html>
