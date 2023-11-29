@@ -7,7 +7,8 @@
  * https://developer.spotify.com/documentation/web-api/tutorials/code-flow
  */
 
-require("dotenv").config();
+const dotenv = require("dotenv").config();
+const punycode = require("punycode/");
 var express = require('express');
 var request = require('request');
 var crypto = require('crypto');
