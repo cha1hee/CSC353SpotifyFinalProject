@@ -74,6 +74,12 @@ def parsePlaylistData(response):
     ##
 
 
+def connectToDatabase():
+    connection = mysql.connector.connect(
+        user='root', password='123456', host='localhost', database='tennishw3')
+    cursor = connection.cursor()
+
+
 def insertPlaylist(id, name, username):
     query_string = "INSERT INTO playlist VALUES (%s, %s, %s)"
     try:
@@ -84,10 +90,10 @@ def insertPlaylist(id, name, username):
 # not done this one
 
 
-def insertPlaylistTracks(id, name, username):
-    query_string = "INSERT INTO playlisttracks VALUES (%s, %s, %s)"
+def insertPlaylistTracks(playlist_id, track_id):
+    query_string = "INSERT INTO playlisttracks VALUES (%s, %s)"
     try:
-        cursor.execute(query_string, (id, name, username))
+        cursor.execute(query_string, (playlist_id, track_id))
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
 

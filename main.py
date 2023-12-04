@@ -1,5 +1,6 @@
 import requests
 import urllib.parse
+import mysql.connector
 import random
 import string
 import json
@@ -7,9 +8,8 @@ from datetime import datetime, timedelta
 from flask import Flask, redirect, request, jsonify, session, render_template
 
 app = Flask(__name__)
-# app.secret_key = ''.join(random.choices(
-#     string.ascii_uppercase + string.ascii_lowercase, k=5))
-app.secret_key = '53d355f8-571a-4590-a310-1f9579440851'
+app.secret_key = ''.join(random.choices(
+    string.ascii_uppercase + string.ascii_lowercase, k=5))
 
 CLIENT_ID = 'f25ba6368fd6455c8d0da51c7ad1b0a0'
 CLIENT_SECRET = '3fce4b7126f3432195118f66269b34f2'
@@ -67,9 +67,10 @@ def callback():
         session['expires_at'] = datetime.now().timestamp() + \
             token_info['expires_in']
 
-        return redirect('/playlists')
+        return redirect('/display')
 
 
+'''
 @app.route('/playlists')
 def get_playlists():
     if 'access_token' not in session:
@@ -85,6 +86,7 @@ def get_playlists():
     playlists = response.json()
 
     return jsonify(playlists)
+'''
 
 
 @app.route('/display')
@@ -115,52 +117,43 @@ def get_display():
     # we will ~likely~ need to find some way to pass the json response into a seperate file
     # and handle the actual parsing of the data & inserting to sql in there.
     # if not, i guess we could do it all in this script?
+
+    # ??????? can we connect here???
+    connection = mysql.connector.connect(
+        user='root', password='', host='localhost', database='SpotifyData')
+    cursor = connection.cursor()
+    user_response = get_user(headers)
+    user_dict = json.loads(user_response)
     playlist_response = get_playlists(headers)
     playlist_dict = json.loads(playlist_response)
     # for item in items (this should iterate over every playlist in the object)
     for playlist in playlist_dict['items']:
         # id = playlist_dict['items]['id']
         # this fn is currently stored in data importer but if this works it would probably make sense to move everything in that file over here
-        insertPlaylist(playlist['id'], playlist['name'], username)
+        insertPlaylist(cursor, playlist['id'],
+                       playlist['name'], user_dict['id'])
         tracks_response = get_tracks(headers, playlist['id'])
         tracks_dict = json.loads(tracks_response)
         for track in tracks_dict['items']:
-            insertPlaylistTracks(playlist['id'], track['track']['id'])
+            # wait until we have 100 tracks, and then use the Get Tracks' Audio Features endpoint!
+            insertPlaylistTracks(cursor, playlist['id'], track['track']['id'])
             if track['track']['id'] not in tracks:
                 audio_features_response = get_audio_features(
                     headers, track['track']['id'])
                 audio_features_dict = json.loads(audio_features_response)
-                insertTrack(track['track']['id'], track['track']['name'], track['album']['name'], audio_features_dict['danceability'], audio_features_dict['duration_ms'], audio_features_dict['energy'], audio_features_dict['instrumentalness'], audio_features_dict['key'],
+                insertTrack(cursor, track['track']['id'], track['track']['name'], track['track']['album']['name'], audio_features_dict['danceability'], audio_features_dict['duration_ms'], audio_features_dict['energy'], audio_features_dict['instrumentalness'], audio_features_dict['key'],
                             audio_features_dict['liveness'], audio_features_dict['loudness'], audio_features_dict['mode'], audio_features_dict['speechiness'], audio_features_dict['tempo'], audio_features_dict['time_signature'], audio_features_dict['valence'])
-
-    # tracks_response = get_tracks(headers, playlist_id)
+        connection.commit()
+    cursor.close()
     return render_template('display.html')
 
-    # maybe here, we could return by calling a function/a different script?
-    # so we'd be returning the code(?) for the display page/the page users can interact with to see their data
-    # or do that before the return??
-    # return jsonify(playlists)
 
+# tracks_response = get_tracks(headers, playlist_id)
+# return render_template('display.html')
 
-def get_playlists(headers):
-    response = requests.get(
-        API_BASE_URL + 'me/playlists', headers=headers)
-    playlists = response.json()
-    return jsonify(playlists)
-
-
-def get_tracks(headers, playlist_id):
-    response = requests.get(
-        API_BASE_URL + 'playlists/' + playlist_id + '/tracks', headers=headers)
-    tracks = response.json()
-    return jsonify(tracks)
-
-
-def get_audio_features(headers, track_id):
-    response = requests.get(
-        API_BASE_URL + 'audio-features/' + track_id, headers=headers)
-    audio_features = response.json()
-    return jsonify(audio_features)
+# maybe here, we could return by calling a function/a different script?
+# so we'd be returning the code(?) for the display page/the page users can interact with to see their data
+# or do that before the return??
 
 
 @app.route('/refresh-token')
@@ -182,7 +175,63 @@ def refresh_token():
         session['expires_at'] = datetime.now().timestamp() + \
             new_token_info['expires_in']
 
-        return redirect('/playlists')
+        return redirect('/display')
+
+
+def get_user(headers):
+    response = requests.get(
+        API_BASE_URL + 'me', headers=headers)
+    user = response.json()
+    return json.dumps(user)
+
+
+def get_playlists(headers):
+    response = requests.get(
+        API_BASE_URL + 'me/playlists', headers=headers)
+    playlists = response.json()
+    return json.dumps(playlists)
+
+
+def get_tracks(headers, playlist_id):
+    # how can we use limit & offset to get ALL items?
+    response = requests.get(
+        API_BASE_URL + 'playlists/' + playlist_id + '/tracks?limit=50', headers=headers)
+    tracks = response.json()
+    return json.dumps(tracks)
+
+
+def get_audio_features(headers, track_id):
+    response = requests.get(
+        API_BASE_URL + 'audio-features/' + track_id, headers=headers)
+    audio_features = response.json()
+    return json.dumps(audio_features)
+
+
+def insertPlaylist(cursor, id, name, username):
+    query_string = "INSERT INTO Playlists VALUES (%s, %s, %s)"
+    try:
+        cursor.execute(query_string, (id, name, username))
+    except mysql.connector.Error as error_descriptor:
+        print("Failed inserting tuple: {}".format(error_descriptor))
+
+# not done this one
+
+
+def insertPlaylistTracks(cursor, playlist_id, track_id):
+    query_string = "INSERT INTO PlaylistTracks VALUES (%s, %s)"
+    try:
+        cursor.execute(query_string, (playlist_id, track_id))
+    except mysql.connector.Error as error_descriptor:
+        print("Failed inserting tuple: {}".format(error_descriptor))
+
+
+def insertTrack(cursor, id, title, album, danceability, duration, energy, instrumentalness, key, liveness, loudness, mode, speechiness, tempo, time_signature, valence):
+    query_string = "INSERT INTO Tracks VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    try:
+        cursor.execute(query_string, (id, title, album, danceability, duration, energy, instrumentalness,
+                       key, liveness, loudness, mode, speechiness, tempo, time_signature, valence))
+    except mysql.connector.Error as error_descriptor:
+        print("Failed inserting tuple: {}".format(error_descriptor))
 
 
 if __name__ == '__main__':
