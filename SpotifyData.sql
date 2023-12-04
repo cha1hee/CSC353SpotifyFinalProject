@@ -37,14 +37,14 @@ CREATE TABLE Playlists
 	 playlist_name	VARCHAR(36),
 	 username		VARCHAR(33),
 	 PRIMARY KEY(id),
-	 FOREIGN KEY (username) REFERENCES user (username)
+	 FOREIGN KEY (username) REFERENCES Users (username)
 	);
 
 DROP TABLE IF EXISTS PlaylistTracks;
 CREATE TABLE PlaylistTracks
 	(playlist_id	VARCHAR(36),
 	 track_id		VARCHAR(36),
-	 PRIMARY KEY(playlist_id, track_id),
-	 FOREIGN KEY (playlist_id) REFERENCES playlist (id),
-	 FOREIGN KEY (track_id) REFERENCES track (id)
+	 -- PRIMARY KEY(playlist_id, track_id),
+	 FOREIGN KEY (playlist_id) REFERENCES Playlists (id),
+	 FOREIGN KEY (track_id) REFERENCES Tracks (id)
 	);
