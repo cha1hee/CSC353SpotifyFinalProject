@@ -2,8 +2,9 @@ import requests
 import urllib.parse
 import random
 import string
+import json
 from datetime import datetime, timedelta
-from flask import Flask, redirect, request, jsonify, session
+from flask import Flask, redirect, request, jsonify, session, render_template
 
 app = Flask(__name__)
 # app.secret_key = ''.join(random.choices(
@@ -97,9 +98,11 @@ def get_display():
         'Authorization': f"Bearer {session['access_token']}"
     }
 
-    playlist_response = requests.get(
-        API_BASE_URL + 'me/playlists', headers=headers)
-    playlists = playlist_response.json()
+    tracks = set()
+
+    # playlist_response = requests.get(
+    #     API_BASE_URL + 'me/playlists', headers=headers)
+    # playlists = playlist_response.json()
 
     # get playlist ids from the response, then iterate over them and make new requestsss
     # /playlists/{playlist_id}/tracks
@@ -108,7 +111,56 @@ def get_display():
     # /audio-features
     #
 
+    # will it work this way?
+    # we will ~likely~ need to find some way to pass the json response into a seperate file
+    # and handle the actual parsing of the data & inserting to sql in there.
+    # if not, i guess we could do it all in this script?
+    playlist_response = get_playlists(headers)
+    playlist_dict = json.loads(playlist_response)
+    # for item in items (this should iterate over every playlist in the object)
+    for playlist in playlist_dict['items']:
+        # id = playlist_dict['items]['id']
+        # this fn is currently stored in data importer but if this works it would probably make sense to move everything in that file over here
+        insertPlaylist(playlist['id'], playlist['name'], username)
+        tracks_response = get_tracks(headers, playlist['id'])
+        tracks_dict = json.loads(tracks_response)
+        for track in tracks_dict['items']:
+            insertPlaylistTracks(playlist['id'], track['track']['id'])
+            if track['track']['id'] not in tracks:
+                audio_features_response = get_audio_features(
+                    headers, track['track']['id'])
+                audio_features_dict = json.loads(audio_features_response)
+                insertTrack(track['track']['id'], track['track']['name'], track['album']['name'], audio_features_dict['danceability'], audio_features_dict['duration_ms'], audio_features_dict['energy'], audio_features_dict['instrumentalness'], audio_features_dict['key'],
+                            audio_features_dict['liveness'], audio_features_dict['loudness'], audio_features_dict['mode'], audio_features_dict['speechiness'], audio_features_dict['tempo'], audio_features_dict['time_signature'], audio_features_dict['valence'])
+
+    # tracks_response = get_tracks(headers, playlist_id)
+    return render_template('display.html')
+
+    # maybe here, we could return by calling a function/a different script?
+    # so we'd be returning the code(?) for the display page/the page users can interact with to see their data
+    # or do that before the return??
+    # return jsonify(playlists)
+
+
+def get_playlists(headers):
+    response = requests.get(
+        API_BASE_URL + 'me/playlists', headers=headers)
+    playlists = response.json()
     return jsonify(playlists)
+
+
+def get_tracks(headers, playlist_id):
+    response = requests.get(
+        API_BASE_URL + 'playlists/' + playlist_id + '/tracks', headers=headers)
+    tracks = response.json()
+    return jsonify(tracks)
+
+
+def get_audio_features(headers, track_id):
+    response = requests.get(
+        API_BASE_URL + 'audio-features/' + track_id, headers=headers)
+    audio_features = response.json()
+    return jsonify(audio_features)
 
 
 @app.route('/refresh-token')

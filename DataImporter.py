@@ -54,6 +54,54 @@ matches = set()
 tourneys = set()
 plays = set()
 
+# ??
+user_ids = set()
+playlist_ids = set()
+track_ids = set()
+
+# ??
+
+
+def parsePlaylistData(response):
+    username = response['username']
+    # get the id of each playlist & the name
+    # and call insertPlaylist
+    # for each playlist in json object
+    playlist_id = response['id']
+    playlist_name = response['name']
+
+    insertPlaylist(playlist_id, playlist_name, username)
+    ##
+
+
+def insertPlaylist(id, name, username):
+    query_string = "INSERT INTO playlist VALUES (%s, %s, %s)"
+    try:
+        cursor.execute(query_string, (id, name, username))
+    except mysql.connector.Error as error_descriptor:
+        print("Failed inserting tuple: {}".format(error_descriptor))
+
+# not done this one
+
+
+def insertPlaylistTracks(id, name, username):
+    query_string = "INSERT INTO playlisttracks VALUES (%s, %s, %s)"
+    try:
+        cursor.execute(query_string, (id, name, username))
+    except mysql.connector.Error as error_descriptor:
+        print("Failed inserting tuple: {}".format(error_descriptor))
+
+
+def insertTrack(id, title, album, danceability, duration, energy, instrumentalness, key, liveness, loudness, mode, speechiness, tempo, time_signature, valence):
+    query_string = "INSERT INTO tracks VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    try:
+        cursor.execute(query_string, (id, title, album, danceability, duration, energy, instrumentalness,
+                       key, liveness, loudness, mode, speechiness, tempo, time_signature, valence))
+    except mysql.connector.Error as error_descriptor:
+        print("Failed inserting tuple: {}".format(error_descriptor))
+
+####
+
 
 def convertDate(date):
     year = date[0:4]

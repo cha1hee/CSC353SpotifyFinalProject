@@ -9,13 +9,13 @@ CREATE TABLE user
 	 PRIMARY KEY (username)
 	);
 
-DROP TABLE IF EXISTS song;
-CREATE TABLE song
+DROP TABLE IF EXISTS track;
+CREATE TABLE track
 	(id					VARCHAR(36),
 	 title				VARCHAR(40),
-	 artist				VARCHAR(30),
+	 artist				VARCHAR(30), --- maybe this should be a seperate table... like artist & album? and then in track table, we'd only store album id?
 	 album				VARCHAR(30),
-	 release_date		DATE,
+	 -- acousticness??
 	 danceability		FLOAT(20, 19),
 	 duration			INT,
 	 energy				FLOAT,
@@ -40,11 +40,11 @@ CREATE TABLE playlist
 	 FOREIGN KEY (username) REFERENCES user (username) ON DELETE CASCADE
 	);
 
-DROP TABLE IF EXISTS playlist_songs;
-CREATE TABLE playlist_songs
+DROP TABLE IF EXISTS playlist_tracks;
+CREATE TABLE playlist_tracks
 	(playlist_id	VARCHAR(36),
-	 song_id		VARCHAR(36),
-	 PRIMARY KEY(playlist_id, song_id),
+	 track_id		VARCHAR(36),
+	 PRIMARY KEY(playlist_id, track_id),
 	 FOREIGN KEY (playlist_id) REFERENCES playlist (id) ON DELETE CASCADE,
-	 FOREIGN KEY (song_id) REFERENCES song (id) ON DELETE CASCADE
+	 FOREIGN KEY (track_id) REFERENCES track (id) ON DELETE CASCADE
 	);
