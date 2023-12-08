@@ -14,7 +14,7 @@ CREATE TABLE Tracks
 	(id					VARCHAR(36),
 	 title				VARCHAR(40),
 	 -- artist				VARCHAR(30), --- maybe this should be a seperate table... like artist & album? and then in track table, we'd only store album id?
-	 album				VARCHAR(30),
+	 album				VARCHAR(50),
 	 -- acousticness??
 	 danceability		FLOAT(20, 19),
 	 duration			INT,
@@ -44,7 +44,7 @@ DROP TABLE IF EXISTS PlaylistTracks;
 CREATE TABLE PlaylistTracks
 	(playlist_id	VARCHAR(36),
 	 track_id		VARCHAR(36),
-	 -- PRIMARY KEY(playlist_id, track_id),
+	 PRIMARY KEY(playlist_id, track_id),
 	 FOREIGN KEY (playlist_id) REFERENCES Playlists (id),
 	 FOREIGN KEY (track_id) REFERENCES Tracks (id)
 	);

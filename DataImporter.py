@@ -194,7 +194,7 @@ def insertPlays(plays_id, match_id, player_id, win_or_lose, ace, df, fstIn, firs
 
 
 # for all the files in the csv directory
-for filename in glob.glob("tennis_atp-master/*.csv"):
+for filename in glob.glob("json-data/*.csv"):
     file = open(filename)
     csvreader = csv.reader(file)
     i = 0
