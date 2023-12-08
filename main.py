@@ -14,7 +14,7 @@ app.secret_key = ''.join(random.choices(
 
 CLIENT_ID = 'f25ba6368fd6455c8d0da51c7ad1b0a0'
 CLIENT_SECRET = '3fce4b7126f3432195118f66269b34f2'
-REDIRECT_URI = 'http://localhost:5000/callback'
+REDIRECT_URI = 'http://localhost:3000/callback'
 
 AUTH_URL = 'https://accounts.spotify.com/authorize'
 TOKEN_URL = 'https://accounts.spotify.com/api/token'
@@ -155,15 +155,9 @@ def get_display():
                 audio_features_response = get_audio_features(
                     headers, track['track']['id'])
                 audio_features_dict = json.loads(audio_features_response)
-                print("track title " + track['track']['name'])
                 insertTrack(connection, cursor, track['track']['id'], track['track']['name'], track['track']['album']['name'], audio_features_dict['danceability'], audio_features_dict['duration_ms'], audio_features_dict['energy'], audio_features_dict['instrumentalness'], audio_features_dict['key'],
                             audio_features_dict['liveness'], audio_features_dict['loudness'], audio_features_dict['mode'], audio_features_dict['speechiness'], audio_features_dict['tempo'], audio_features_dict['time_signature'], audio_features_dict['valence'])
                 tracks.add(track['track']['id'])
-                print("printing new track" +
-                      track['track']['name'] + " id " + track['track']['id'])
-            else:
-                print("printing previously seen track" +
-                      track['track']['name'] + " id " + track['track']['id'])
             insertPlaylistTracks(connection, cursor,
                                  playlist['id'], track['track']['id'])
     cursor.close()
@@ -277,4 +271,4 @@ def insertTrack(connection, cursor, id, title, album, danceability, duration, en
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0', port=3000, debug=True)
