@@ -12,7 +12,7 @@ CREATE TABLE Users
 DROP TABLE IF EXISTS Tracks;
 CREATE TABLE Tracks
 	(id					VARCHAR(36),
-	 title				VARCHAR(40),
+	 title				VARCHAR(60),
 	 -- artist				VARCHAR(30), --- maybe this should be a seperate table... like artist & album? and then in track table, we'd only store album id?
 	 album				VARCHAR(50),
 	 -- acousticness??
