@@ -4,6 +4,7 @@ import mysql.connector
 import random
 import string
 import json
+import time
 from datetime import datetime, timedelta
 from flask import Flask, redirect, request, jsonify, session, render_template
 
@@ -118,15 +119,28 @@ def get_display():
     # and handle the actual parsing of the data & inserting to sql in there.
     # if not, i guess we could do it all in this script?
     tracks = set()
+    # playlists = set()
 
     # ??????? can we connect here???
     connection = mysql.connector.connect(
         user='root', password='', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
     user_response = get_user(headers)
+    # with open("userResponse.json", "w") as outfile:
+    #     json.dump(user_response, outfile)
     user_dict = json.loads(user_response)
+    insertUser(connection, cursor, user_dict['id'], user_dict['display_name'])
     playlist_response = get_playlists(headers)
     playlist_dict = json.loads(playlist_response)
+    with open("playlistResponse.json", "w") as outfile:
+        json.dump(playlist_response, outfile)
+    # for each playlist id, request every track on that playlist
+    # for playlist in playlist_response['items']:
+    #     tracks_response = get_tracks(headers, playlist['id'])
+    #     with open("tracksResponse.json", "w") as outfile:
+    #         json.dump(tracks_response, outfile)
+
+    # playlist_dict = json.loads(playlist_response)
     # for item in items (this should iterate over every playlist in the object)
     for playlist in playlist_dict['items']:
         # id = playlist_dict['items]['id']
@@ -137,15 +151,21 @@ def get_display():
         tracks_dict = json.loads(tracks_response)
         for track in tracks_dict['items']:
             # wait until we have 100 tracks, and then use the Get Tracks' Audio Features endpoint!
-            insertPlaylistTracks(connection, cursor,
-                                 playlist['id'], track['track']['id'])
             if track['track']['id'] not in tracks:
                 audio_features_response = get_audio_features(
                     headers, track['track']['id'])
                 audio_features_dict = json.loads(audio_features_response)
+                print("track title " + track['track']['name'])
                 insertTrack(connection, cursor, track['track']['id'], track['track']['name'], track['track']['album']['name'], audio_features_dict['danceability'], audio_features_dict['duration_ms'], audio_features_dict['energy'], audio_features_dict['instrumentalness'], audio_features_dict['key'],
                             audio_features_dict['liveness'], audio_features_dict['loudness'], audio_features_dict['mode'], audio_features_dict['speechiness'], audio_features_dict['tempo'], audio_features_dict['time_signature'], audio_features_dict['valence'])
                 tracks.add(track['track']['id'])
+                print("printing new track" +
+                      track['track']['name'] + " id " + track['track']['id'])
+            else:
+                print("printing previously seen track" +
+                      track['track']['name'] + " id " + track['track']['id'])
+            insertPlaylistTracks(connection, cursor,
+                                 playlist['id'], track['track']['id'])
     cursor.close()
     return render_template('display.html')
 
@@ -209,6 +229,15 @@ def get_audio_features(headers, track_id):
     return json.dumps(audio_features)
 
 
+def insertUser(connection, cursor, username, name):
+    query_string = "INSERT INTO Users VALUES (%s, %s)"
+    try:
+        cursor.execute(query_string, (username, name))
+        connection.commit()
+    except mysql.connector.Error as error_descriptor:
+        print("Failed inserting tuple: {}".format(error_descriptor))
+
+
 def insertPlaylist(connection, cursor, id, name, username):
     query_string = "INSERT INTO Playlists VALUES (%s, %s, %s)"
     try:
@@ -216,6 +245,7 @@ def insertPlaylist(connection, cursor, id, name, username):
         connection.commit()
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
+        print("failed on insertPlaylist: id: " + id + " name: " + name)
 
 # not done this one
 
@@ -231,6 +261,8 @@ def insertPlaylistTracks(connection, cursor, playlist_id, track_id):
         connection.commit()
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
+        print("failed on insertPlaylistTrack: playlist_id: " +
+              playlist_id + " track_id: " + track_id)
 
 
 def insertTrack(connection, cursor, id, title, album, danceability, duration, energy, instrumentalness, key, liveness, loudness, mode, speechiness, tempo, time_signature, valence):
@@ -241,6 +273,7 @@ def insertTrack(connection, cursor, id, title, album, danceability, duration, en
         connection.commit()
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
+        print("failed on insertTrack: id: " + id + " title: " + title)
 
 
 if __name__ == '__main__':
