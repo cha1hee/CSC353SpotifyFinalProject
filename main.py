@@ -23,7 +23,35 @@ API_BASE_URL = 'https://api.spotify.com/v1/'
 
 @app.route('/')
 def index():
-    return "Welcome to my Spotify App <a href='/login'>Login with Spotify</a>"
+    return '''
+    <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Document</title>
+            <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+            integrity="sha384-KyZXEAg3QhqLMpG8r+8fhAXLRk2vvoC2f3B09zVXn8CA5QIVfZOJ3BCsw2P0p/We"
+            crossorigin="anonymous"
+            />
+        </head>
+        <body>
+            <div class="container">
+                <div class="row" style="height: 20px;"></div>
+                <div class="row">
+                    <div class="col-2"></div>
+                    <div class="col-8" style="text-align: center;">
+                        <h1>Welcome to Sound Mate Spotify!</h1>
+                        <br>
+                        <a class="btn btn-primary" href="/login" role="button" style="background-color:green; border-color: green;">Login with Spotify</a>
+                    </div>
+                </div>
+            </div>
+        </body>
+    </html>
+'''
 
 
 @app.route('/login')
@@ -123,7 +151,7 @@ def get_display():
 
     # ??????? can we connect here???
     connection = mysql.connector.connect(
-        user='root', password='', host='localhost', database='SpotifyData')
+        user='root', password='123456', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
     user_response = get_user(headers)
     # with open("userResponse.json", "w") as outfile:
