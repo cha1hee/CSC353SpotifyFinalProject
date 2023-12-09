@@ -14,7 +14,7 @@ app.secret_key = ''.join(random.choices(
 
 CLIENT_ID = 'f25ba6368fd6455c8d0da51c7ad1b0a0'
 CLIENT_SECRET = '3fce4b7126f3432195118f66269b34f2'
-REDIRECT_URI = 'http://localhost:5000/callback'
+REDIRECT_URI = 'http://localhost:3000/callback'
 
 AUTH_URL = 'https://accounts.spotify.com/authorize'
 TOKEN_URL = 'https://accounts.spotify.com/api/token'
@@ -277,4 +277,4 @@ def insertTrack(connection, cursor, id, title, album, danceability, duration, en
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0', port= 3000, debug=True)
