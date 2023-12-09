@@ -24,6 +24,9 @@ API_BASE_URL = 'https://api.spotify.com/v1/'
 @app.route('/')
 def index():
     return "Welcome to my Spotify App <a href='/login'>Login with Spotify</a>"
+    # add index.html to templates subdirectory
+    # add button in index file that will redirect user to /login endpoint – can we do this?
+    # return render_template('index.html')
 
 
 @app.route('/login')
@@ -101,8 +104,6 @@ def get_display():
         'Authorization': f"Bearer {session['access_token']}"
     }
 
-    tracks = set()
-
     # playlist_response = requests.get(
     #     API_BASE_URL + 'me/playlists', headers=headers)
     # playlists = playlist_response.json()
@@ -118,7 +119,7 @@ def get_display():
     # we will ~likely~ need to find some way to pass the json response into a seperate file
     # and handle the actual parsing of the data & inserting to sql in there.
     # if not, i guess we could do it all in this script?
-    tracks = set()
+    stored_tracks = set()
     # playlists = set()
 
     # ??????? can we connect here???
@@ -130,10 +131,10 @@ def get_display():
     #     json.dump(user_response, outfile)
     user_dict = json.loads(user_response)
     insertUser(connection, cursor, user_dict['id'], user_dict['display_name'])
-    playlist_response = get_playlists(headers)
-    playlist_dict = json.loads(playlist_response)
-    with open("playlistResponse.json", "w") as outfile:
-        json.dump(playlist_response, outfile)
+    playlists_response = get_playlists(headers)
+    playlists = playlists_response['items']
+    # with open("playlistResponse.json", "w") as outfile:
+    #     json.dump(playlist_response, outfile)
     # for each playlist id, request every track on that playlist
     # for playlist in playlist_response['items']:
     #     tracks_response = get_tracks(headers, playlist['id'])
@@ -142,22 +143,24 @@ def get_display():
 
     # playlist_dict = json.loads(playlist_response)
     # for item in items (this should iterate over every playlist in the object)
-    for playlist in playlist_dict['items']:
+    for playlist in playlists:
         # id = playlist_dict['items]['id']
         # this fn is currently stored in data importer but if this works it would probably make sense to move everything in that file over here
         insertPlaylist(connection, cursor, playlist['id'],
                        playlist['name'], user_dict['id'])
+        # tracks_response = get_tracks(headers, playlist['id'])
         tracks_response = get_tracks(headers, playlist['id'])
-        tracks_dict = json.loads(tracks_response)
-        for track in tracks_dict['items']:
+        tracks = tracks_response['items']
+        # tracks_dict = json.loads(tracks_response)
+        for track in tracks:
             # wait until we have 100 tracks, and then use the Get Tracks' Audio Features endpoint!
-            if track['track']['id'] not in tracks:
+            if track['track']['id'] not in stored_tracks:
                 audio_features_response = get_audio_features(
                     headers, track['track']['id'])
                 audio_features_dict = json.loads(audio_features_response)
                 insertTrack(connection, cursor, track['track']['id'], track['track']['name'], track['track']['album']['name'], audio_features_dict['danceability'], audio_features_dict['duration_ms'], audio_features_dict['energy'], audio_features_dict['instrumentalness'], audio_features_dict['key'],
                             audio_features_dict['liveness'], audio_features_dict['loudness'], audio_features_dict['mode'], audio_features_dict['speechiness'], audio_features_dict['tempo'], audio_features_dict['time_signature'], audio_features_dict['valence'])
-                tracks.add(track['track']['id'])
+                stored_tracks.add(track['track']['id'])
             insertPlaylistTracks(connection, cursor,
                                  playlist['id'], track['track']['id'])
     cursor.close()
@@ -202,18 +205,35 @@ def get_user(headers):
 
 
 def get_playlists(headers):
-    response = requests.get(
-        API_BASE_URL + 'me/playlists', headers=headers)
-    playlists = response.json()
-    return json.dumps(playlists)
+    offset = 0
+    playlists = dict()
+    while True:
+        response = requests.get(
+            API_BASE_URL + 'me/playlists?offset=' + str(offset), headers=headers)
+        offset += 100
+        json_playlists = json.loads(json.dumps(response.json()))
+        if len(json_playlists['items']) == 0:
+            break
+        playlists.update(json_playlists)
+    return playlists
 
 
 def get_tracks(headers, playlist_id):
     # how can we use limit & offset to get ALL items?
-    response = requests.get(
-        API_BASE_URL + 'playlists/' + playlist_id + '/tracks?limit=50', headers=headers)
-    tracks = response.json()
-    return json.dumps(tracks)
+    offset = 0
+    tracks = dict()
+    while True:
+        response = requests.get(
+            API_BASE_URL + 'playlists/' + playlist_id + '/tracks?offset=' + str(offset), headers=headers)
+        offset += 100
+        json_tracks = json.loads(json.dumps(response.json()))
+        if len(json_tracks['items']) == 0:
+            break
+        tracks.update(json_tracks)
+    return tracks
+
+    # tracks = json.dumps(response.json())
+    # return json.loads(tracks)
 
 
 def get_audio_features(headers, track_id):
