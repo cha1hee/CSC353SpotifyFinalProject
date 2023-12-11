@@ -144,7 +144,8 @@ def get_display():
     # we will ~likely~ need to find some way to pass the json response into a seperate file
     # and handle the actual parsing of the data & inserting to sql in there.
     # if not, i guess we could do it all in this script?
-    stored_tracks = set()
+    seen_tracks = set()
+    tracks_to_request = []
     # playlists = set()
 
     # ??????? can we connect here???
@@ -177,17 +178,32 @@ def get_display():
         tracks_response = get_tracks(headers, playlist['id'])
         tracks = tracks_response['items']
         # tracks_dict = json.loads(tracks_response)
+        track_num = 0
         for track in tracks:
             # wait until we have 100 tracks, and then use the Get Tracks' Audio Features endpoint!
-            if track['track']['id'] not in stored_tracks:
-                audio_features_response = get_audio_features(
-                    headers, track['track']['id'])
-                # audio_features = audio_features_response['items']
-                insertTrack(connection, cursor, track['track']['id'], track['track']['name'], track['track']['album']['name'], audio_features_response['danceability'], audio_features_response['duration_ms'], audio_features_response['energy'], audio_features_response['instrumentalness'], audio_features_response['key'],
-                            audio_features_response['liveness'], audio_features_response['loudness'], audio_features_response['mode'], audio_features_response['speechiness'], audio_features_response['tempo'], audio_features_response['time_signature'], audio_features_response['valence'])
-                stored_tracks.add(track['track']['id'])
-            insertPlaylistTracks(connection, cursor,
-                                 playlist['id'], track['track']['id'])
+            if track['track']['id'] not in seen_tracks:
+                seen_tracks.add(track['track']['id'])
+            # if (len(seen_tracks) == total # of tracks in playlist OR == 100)
+                # make request to api
+                tracks_to_request.append(track['track']['id'])
+                # if track is new AND we've seen 100 tracks, then make a request to get audio features of the next 100 tracks
+                if len(tracks_to_request) == 100 or len(tracks_to_request) == tracks_response['total']:
+                    print('limit/end reached = ', len(tracks_to_request),
+                          'for playlist: ', playlist['name'])
+                    tracks_to_request_string = ','.join(tracks_to_request)
+                    audio_features_response = get_audio_features(
+                        headers, tracks_to_request_string)
+                    audio_features = json.loads(audio_features_response)
+                    print("type of ", type(audio_features))
+                    for item in audio_features:
+                        print('aud feats ', audio_features)
+                        print('item ' + item)
+                        insertTrack(connection, cursor, track['track']['id'], track['track']['name'], track['track']['album']['name'], item['danceability'], item['duration_ms'], item['energy'], item['instrumentalness'], item['key'],
+                                    item['liveness'], item['loudness'], item['mode'], item['speechiness'], item['tempo'], item['time_signature'], item['valence'])
+                    # seen_tracks.add(track['track']['id'])
+                    tracks_to_request = []
+            # insertPlaylistTracks(connection, cursor,
+            #                      playlist['id'], track['track']['id'])
     cursor.close()
     return render_template('display.html')
 
@@ -230,12 +246,14 @@ def get_user(headers):
 
 
 def get_playlists(headers):
-    offset = 0
     playlists_dict = dict()
-    while True:
+    response = requests.get(
+        API_BASE_URL + 'me/playlists', headers=headers)
+    json_playlists = json.loads(json.dumps(response.json()))
+    playlists_dict.update(json_playlists)
+    while (playlists_dict['next'] is not None):
         response = requests.get(
-            API_BASE_URL + 'me/playlists?offset=' + str(offset) + '&limit=50', headers=headers)
-        offset += 1
+            API_BASE_URL + 'me/playlists', headers=headers)
         json_playlists = json.loads(json.dumps(response.json()))
         if len(json_playlists['items']) == 0:
             break
@@ -257,17 +275,24 @@ def get_tracks(headers, playlist_id):
             break
         tracks_dict.update(json_tracks)
     return tracks_dict
-
     # tracks = json.dumps(response.json())
     # return json.loads(tracks)
 
 
-def get_audio_features(headers, track_id):
-    res = requests.get(
-        API_BASE_URL + 'audio-features/' + track_id, headers=headers).json
-    response_str = json.dumps(res)
-    audio_features_dict = json.loads(response_str)
-    return audio_features_dict
+def get_audio_features(headers, track_ids):
+    print('request URL ', API_BASE_URL + 'audio-features/' + track_ids)
+    # audio_features_dict = ()
+    response = requests.get(
+        API_BASE_URL + 'audio-features', ids=track_ids, headers=headers)
+    # json_audio_features = json.loads(json.dumps(response.json()))
+    audio_features = response.json()
+    return json.dumps(audio_features)
+
+
+def handle_api_error(error, requested_ids, id_type):
+    print("Failed to retrieve data for " +
+          id_type + " with id(s): " + requested_ids)
+    print("Error: " + error['error']['message'])
 
 
 def insertUser(connection, cursor, username, name):
