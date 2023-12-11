@@ -149,7 +149,7 @@ def get_display():
 
     # ??????? can we connect here???
     connection = mysql.connector.connect(
-        user='root', password='', host='localhost', database='SpotifyData')
+        user='root', password='123456', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
     user_response = get_user(headers)
     # with open("userResponse.json", "w") as outfile:
