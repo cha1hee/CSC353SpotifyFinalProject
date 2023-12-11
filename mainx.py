@@ -131,6 +131,24 @@ def display():
     # and then after each request, insert to database
     response = sp.current_user_top_artists(
         limit=data['num_tracks'], time_range=data['time_range'])
+    # seen_tracks = set()
+    # # get all playlists
+    # playlists = []
+    # for playlist in playlists:
+    #     # insert playlist
+    #     # then get all tracks from the playlist
+    #     playlist_tracks = get_all_playlist_tracks(sp, user_id, playlist_id)
+    #     tracks_to_request = []
+    #     for track in playlist_tracks:
+    #         if track['track']['id'] not in seen_tracks:
+    #             seen_tracks.add(track['track']['id'])
+    #             tracks_to_request.append(track['track']['id'])
+    #             if len(tracks_to_request) == 100 or len(tracks_to_request) == tracks_response['total']:
+    #                 tracks_audio_features = sp.audio_features(
+    #                     tracks_to_request)
+    #                 # insert track
+    #                 # insert playlsit outside of this loop
+
     return render_template("display.html")
 
 
@@ -156,5 +174,14 @@ def refresh_token():
         return redirect('/display')
 
 
+def get_all_playlist_tracks(sp, username, playlist_id):
+    results = sp.user_playlist_tracks(username, playlist_id)
+    tracks = results['items']
+    while results['next']:
+        results = sp.next(results)
+        tracks.extend(results['items'])
+    return tracks
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=3000, debug=True)
