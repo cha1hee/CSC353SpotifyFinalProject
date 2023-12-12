@@ -504,16 +504,21 @@ def get_display():
                 # initialize this somewhere else... and just update it here...
                 tracks_to_request[track['track']['id']] = track_data
                 # tracks_to_request.append(track_info)
-                print('playlist ', playlist)
-                print('total ', playlist['tracks']['total'])
+                # print('playlist ', playlist)
+                # print('total ', playlist['tracks']['total'])
+                # define something to work for the extra tracks (after 100 were cut off)
                 if len(tracks_to_request) == 100 or len(tracks_to_request) == playlist['tracks']['total']:
+                    print('# tracks seen ', len(tracks_to_request))
                     track_ids = tracks_to_request.keys()
                     tracks_audio_features = sp.audio_features(track_ids)
-                    for t in tracks_to_request:
-                        print("type of t ", type(t), " t val ", t)
-                        tracks_to_request[t].append(tracks_audio_features)
+                    for key, value, track_features in zip(tracks_to_request.keys(), tracks_to_request.values(), tracks_audio_features):
+                        value.extend([track_features])
+                    # print('audio feats ', tracks_audio_features)
+                    # print('type audio feats ', type(tracks_audio_features))
+                    # for t in tracks_audio_features:
+                    #     print("type of t ", type(t), " t val ", t)
+                    #     tracks_to_request[t].append(tracks_audio_features)
                     for key in tracks_to_request:
-                        print("key: ", key)
                         insertTrack(connection, cursor, key, tracks_to_request[key][TRACK_INFO_INDEX]['title'], tracks_to_request[key][TRACK_INFO_INDEX]['album'], tracks_to_request[key][TRACK_FEATURES_INDEX]['danceability'], tracks_to_request[key][TRACK_FEATURES_INDEX]['duration_ms'], tracks_to_request[key][TRACK_FEATURES_INDEX]['energy'],
                                     tracks_to_request[key][TRACK_FEATURES_INDEX]['instrumentalness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['key'], tracks_to_request[key][TRACK_FEATURES_INDEX]['liveness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['loudness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['mode'], tracks_to_request[key][TRACK_FEATURES_INDEX]['speechiness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['tempo'], tracks_to_request[key][TRACK_FEATURES_INDEX]['time_signature'], tracks_to_request[key][TRACK_FEATURES_INDEX]['valence'])
                         # if no error...
@@ -521,7 +526,7 @@ def get_display():
                         insertPlaylistTracks(connection, cursor,
                                              playlist['id'], key)
             elif track['track']['id'] not in current_playlist_tracks:
-                print("seen track")
+                # print("seen track")
                 insertPlaylistTracks(connection, cursor,
                                      playlist['id'], track['track']['id'])
     return render_template("display.html")
