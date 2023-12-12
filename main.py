@@ -370,6 +370,9 @@ API_BASE_URL = 'https://accounts.spotify.com'
 
 SCOPE = 'playlist-modify-private,playlist-modify-public,user-top-read'
 
+TRACK_INFO_INDEX = 0
+TRACK_FEATURES_INDEX = 1
+
 
 @app.route('/')
 def index():
@@ -479,7 +482,8 @@ def get_display():
     #     limit=data['num_tracks'], time_range=data['time_range'])
     # seen_tracks = set()
     # # get all playlists
-    seen_tracks = set()
+    current_playlist_tracks = set()
+    inserted_tracks = set()
     user = sp.current_user()
     insertUser(connection, cursor, user['id'], user['display_name'])
     playlists = get_all_playlists(sp)
@@ -489,21 +493,35 @@ def get_display():
         # insert playlist
         # then get all tracks from the playlist
         playlist_tracks = get_all_playlist_tracks(
-            sp, user.get('id'), playlist.get('id'))
-        tracks_to_request = []
+            sp, user['id'], playlist['id'])
         for track in playlist_tracks:
-            if track['track']['id'] not in seen_tracks:
-                seen_tracks.add(track['track']['id'])
-                tracks_to_request.append(track['track']['id'])
+            if track['track']['id'] not in inserted_tracks:
+                current_playlist_tracks.add(track['track']['id'])
+                track_info = dict(
+                    title=track['track']['name'], album=track['track']['album']['name'])
+                track_data = [track_info]
+                tracks_to_request = dict(
+                    id=track['track']['id'], data=track_data)
+                # tracks_to_request.append(track_info)
+                print('total ', playlist.get['total'])
                 if len(tracks_to_request) == 100 or len(tracks_to_request) == playlist.get('total'):
-                    tracks_audio_features = sp.audio_features(
-                        tracks_to_request)
-                    for item in tracks_audio_features:
-                        insertTrack(connection, cursor, track['track']['id'], track['track']['name'], track['track']['album']['name'], item['danceability'], item['duration_ms'], item['energy'],
-                                    item['instrumentalness'], item['key'], item['liveness'], item['loudness'], item['mode'], item['speechiness'], item['tempo'], item['time_signature'], item['valence'])
+                    track_ids = tracks_to_request.getKeys()
+                    tracks_audio_features = sp.audio_features(track_ids)
+                    for t, d in tracks_to_request:
+                        print("type of t ", type(t), " t val ", t)
+                        t[d].append(tracks_audio_features)
+                    for key, data in tracks_to_request:
+                        print("key: ", key)
+                        insertTrack(connection, cursor, key, data[TRACK_INFO_INDEX]['title'], data[TRACK_INFO_INDEX]['album'], data[TRACK_FEATURES_INDEX]['danceability'], data[TRACK_FEATURES_INDEX]['duration_ms'], data[TRACK_FEATURES_INDEX]['energy'],
+                                    data[TRACK_FEATURES_INDEX]['instrumentalness'], data[TRACK_FEATURES_INDEX]['key'], data[TRACK_FEATURES_INDEX]['liveness'], data[TRACK_FEATURES_INDEX]['loudness'], data[TRACK_FEATURES_INDEX]['mode'], data[TRACK_FEATURES_INDEX]['speechiness'], data[TRACK_FEATURES_INDEX]['tempo'], data[TRACK_FEATURES_INDEX]['time_signature'], data[TRACK_FEATURES_INDEX]['valence'])
+                        # if no error...
+                        inserted_tracks.add(key)
                         insertPlaylistTracks(connection, cursor,
-                                             playlist['id'], track['track']['id'])
-                    tracks_to_request = []
+                                             playlist['id'], key)
+            elif track['track']['id'] not in current_playlist_tracks:
+                print("seen track")
+                insertPlaylistTracks(connection, cursor,
+                                     playlist['id'], track['track']['id'])
     return render_template("display.html")
 
 
