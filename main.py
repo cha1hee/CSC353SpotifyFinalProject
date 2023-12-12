@@ -494,26 +494,28 @@ def get_display():
         # then get all tracks from the playlist
         playlist_tracks = get_all_playlist_tracks(
             sp, user['id'], playlist['id'])
+        tracks_to_request = dict()
         for track in playlist_tracks:
             if track['track']['id'] not in inserted_tracks:
                 current_playlist_tracks.add(track['track']['id'])
                 track_info = dict(
                     title=track['track']['name'], album=track['track']['album']['name'])
                 track_data = [track_info]
-                tracks_to_request = dict(
-                    id=track['track']['id'], data=track_data)
+                # initialize this somewhere else... and just update it here...
+                tracks_to_request[track['track']['id']] = track_data
                 # tracks_to_request.append(track_info)
-                print('total ', playlist.get['total'])
-                if len(tracks_to_request) == 100 or len(tracks_to_request) == playlist.get('total'):
-                    track_ids = tracks_to_request.getKeys()
+                print('playlist ', playlist)
+                print('total ', playlist['tracks']['total'])
+                if len(tracks_to_request) == 100 or len(tracks_to_request) == playlist['tracks']['total']:
+                    track_ids = tracks_to_request.keys()
                     tracks_audio_features = sp.audio_features(track_ids)
-                    for t, d in tracks_to_request:
+                    for t in tracks_to_request:
                         print("type of t ", type(t), " t val ", t)
-                        t[d].append(tracks_audio_features)
-                    for key, data in tracks_to_request:
+                        tracks_to_request[t].append(tracks_audio_features)
+                    for key in tracks_to_request:
                         print("key: ", key)
-                        insertTrack(connection, cursor, key, data[TRACK_INFO_INDEX]['title'], data[TRACK_INFO_INDEX]['album'], data[TRACK_FEATURES_INDEX]['danceability'], data[TRACK_FEATURES_INDEX]['duration_ms'], data[TRACK_FEATURES_INDEX]['energy'],
-                                    data[TRACK_FEATURES_INDEX]['instrumentalness'], data[TRACK_FEATURES_INDEX]['key'], data[TRACK_FEATURES_INDEX]['liveness'], data[TRACK_FEATURES_INDEX]['loudness'], data[TRACK_FEATURES_INDEX]['mode'], data[TRACK_FEATURES_INDEX]['speechiness'], data[TRACK_FEATURES_INDEX]['tempo'], data[TRACK_FEATURES_INDEX]['time_signature'], data[TRACK_FEATURES_INDEX]['valence'])
+                        insertTrack(connection, cursor, key, tracks_to_request[key][TRACK_INFO_INDEX]['title'], tracks_to_request[key][TRACK_INFO_INDEX]['album'], tracks_to_request[key][TRACK_FEATURES_INDEX]['danceability'], tracks_to_request[key][TRACK_FEATURES_INDEX]['duration_ms'], tracks_to_request[key][TRACK_FEATURES_INDEX]['energy'],
+                                    tracks_to_request[key][TRACK_FEATURES_INDEX]['instrumentalness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['key'], tracks_to_request[key][TRACK_FEATURES_INDEX]['liveness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['loudness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['mode'], tracks_to_request[key][TRACK_FEATURES_INDEX]['speechiness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['tempo'], tracks_to_request[key][TRACK_FEATURES_INDEX]['time_signature'], tracks_to_request[key][TRACK_FEATURES_INDEX]['valence'])
                         # if no error...
                         inserted_tracks.add(key)
                         insertPlaylistTracks(connection, cursor,
