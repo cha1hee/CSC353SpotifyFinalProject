@@ -1,6 +1,6 @@
 /* Dropdown Button */
 .dropbtn {
-    background-color: #04AA6D;
+    background-color: #3e8e41;
     color: white;
     padding: 5px 10px;
     font-size: 16px;
@@ -32,10 +32,94 @@
   }
   
   /* Change color of dropdown links on hover */
-  .dropdown-content a:hover {background-color: #ddd;}
+  .dropdown-content a:hover {background-color: #134611;
+  color: white;}
   
   /* Show the dropdown menu on hover */
   .dropdown:hover .dropdown-content {display: block;}
   
   /* Change the background color of the dropdown button when the dropdown content is shown */
   .dropdown:hover .dropbtn {background-color: #3e8e41;}
+
+
+  #title{
+    height: 55px; 
+    width: 100%; 
+    background-color: #3DA35D; 
+    padding: 5px 20px; 
+    position: fixed;
+  }
+
+  #w{
+    height: 80px; 
+    padding-top: 20px;
+    width: 100%; 
+    position: fixed; 
+    top: 55px;
+    background-color: #FFF;
+    z-index: 1;
+  }
+
+  #content{
+    position: relative; 
+    top: 75px;
+    z-index: -2;
+  }
+
+  #nav-bar{
+    position: fixed;
+    top: 135px;
+    width: 100%;
+  }
+
+  ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    background-color: #3DA35D;
+  }
+
+  li {
+    /* display: inline; */
+    float: left;
+  }
+
+  a {
+    display: block;
+    padding: 8px;
+    background-color: #3DA35D;
+  }
+
+  li a {
+    display: block;
+    color: black;
+    text-align: center;
+    padding: 14px 16px;
+    text-decoration: none;
+  }
+
+  li a:hover {
+    background-color: #134611;
+    color: white;
+  }
+
+  /* frontend for content section */
+  #d1{
+    background-color: #E8FCCF;
+  }
+
+  #v2{
+    background-color: #96E072;
+  }
+
+  #l1{
+    background-color: #E8FCCF;
+  }
+
+  #e2{
+    background-color: #96E072;
+  }
+
+  #s1{
+    background-color: #E8FCCF;
+  }

@@ -15,9 +15,8 @@
   <body>
     <div class="container-gx0">
       <!-- <div class="row" style="height: 30px;"></div> -->
-      <div class="row" style="height: auto; background-color: #3DA35D; padding: 5px 20px;"> <h1>Sound Mate Spotify</h1></div>
-      <div class="row" style="height: 20px;"></div>
-      <div class="row">
+      <div class="row" id='title'> <h1>Sound Mate Spotify</h1></div>
+      <div class="row" id='w'>
         <div class="col-2"></div>
         <div class="col-8">
           Choose which playlsit to analyze:
@@ -31,6 +30,51 @@
           </div>
         </div>
         <div class="col-2"></div>
+      </div>
+      <div class="row" id="nav-bar">
+        <ul>
+          <li><a href="#gen">General</a></li>
+          <li><a href="#dance">Danceability</a></li>
+          <li><a href="#valence">valence</a></li>
+          <li><a href="#liveness">Liveness</a></li>
+          <li><a href="#energy">Energy</a></li>
+          <li><a href="#speechiness">Speechiness</a></li>
+        </ul>
+      </div>
+      <div class="row" id='content'>
+        <div id="gen">
+          <h2>General Overview</h2>
+        </div>
+        <div class="row" id="dance">
+          <div class="col" id="d1">
+            <h2>Danceability</h2>
+          </div>
+          <div class="col" id="d2">sdf</div>
+        </div>
+        <div class="row" id="valence">
+            <div class="col" id="v1">
+              <h2>Valence</h2>
+            </div>
+            <div class="col" id="v2">ff</div>
+        </div>
+        <div class="row" id="liveness">
+          <div class="col" id="l1">
+            <h2>Liveness</h2>
+          </div>
+          <div class="col" id="l2"></div>
+        </div>
+        <div class="row" id="energy">
+          <div class="col" id="e1">
+            <h2>Energy</h2>
+          </div>
+          <div class="col" id="e2">ff</div>
+        </div>
+        <div class="row" id="speechiness">
+          <div class="col" id="s1">
+            <h2>Speechiness</h2>
+          </div>
+          <div class="col" id="s2"></div>
+        </div>
       </div>
     </div>
 
