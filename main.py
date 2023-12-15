@@ -1,12 +1,12 @@
+from flask import Flask, render_template, redirect, request, session, make_response, session, redirect, jsonify
+import spotipy
+import spotipy.util as util
 import requests
 import urllib.parse
 import mysql.connector
+from datetime import datetime
 import random
 import string
-import json
-import time
-from datetime import datetime, timedelta
-from flask import Flask, redirect, request, jsonify, session, render_template
 
 app = Flask(__name__)
 app.secret_key = ''.join(random.choices(
@@ -18,7 +18,38 @@ REDIRECT_URI = 'http://localhost:3000/callback'
 
 AUTH_URL = 'https://accounts.spotify.com/authorize'
 TOKEN_URL = 'https://accounts.spotify.com/api/token'
-API_BASE_URL = 'https://api.spotify.com/v1/'
+API_BASE_URL = 'https://accounts.spotify.com'
+
+SCOPE = 'playlist-modify-private,playlist-modify-public,user-top-read'
+
+TRACK_INFO_INDEX = 0
+TRACK_FEATURES_INDEX = 1
+
+
+# class User:
+#     def __init__(self, username, display_name):
+#         self.username = username
+#         self.display_name = display_name
+
+
+# class Playlist:
+#     tracks = set()
+
+#     def __init__(self, playlist_id, name, username):
+#         self.playlist_id = playlist_id
+#         self.name = name
+#         self.username = username
+
+
+# class Track:
+#     on_playlists = set()
+#     title = str
+#     album = str
+#     inserted = False
+#     audio_features = dict()
+
+#     def __init__(self, track_id):
+#         self.track_id = track_id
 
 
 @app.route('/')
@@ -56,12 +87,12 @@ def index():
 
 @app.route('/login')
 def login():
-    scope = 'user-read-private user-read-email'
+    # scope = 'user-read-private user-read-email'
 
     params = {
         'client_id': CLIENT_ID,
         'response_type': 'code',
-        'scope': scope,
+        'scope': SCOPE,
         'redirect_uri': REDIRECT_URI,
         # default is FALSE, and you don't have to include this param at all.
         # TRUE will force the user to re-login if they navigate back to this page.
@@ -74,11 +105,10 @@ def login():
     return redirect(auth_url)
 
 
-@app.route('/callback')
+@app.route("/callback")
 def callback():
     if 'error' in request.args:
         return jsonify({"error": request.args['error']})
-
     if 'code' in request.args:
         req_body = {
             'code': request.args['code'],
@@ -98,106 +128,78 @@ def callback():
 
         return redirect('/display')
 
-
-'''
-@app.route('/playlists')
-def get_playlists():
-    if 'access_token' not in session:
-        return redirect('/login')
-    if datetime.now().timestamp() > session['expires_at']:
-        return redirect('/refresh-token')
-
-    headers = {
-        'Authorization': f"Bearer {session['access_token']}"
-    }
-
-    response = requests.get(API_BASE_URL + 'me/playlists', headers=headers)
-    playlists = response.json()
-
-    return jsonify(playlists)
-'''
+# add try-except blocks for inserting playlists, tracks, and playlist tracks
+# also wrap the api requests in if-statement checking that the id is not already in the database – it shouldn't be, but whatever
 
 
-@app.route('/display')
+@app.route("/display")
 def get_display():
     if 'access_token' not in session:
         return redirect('/login')
     if datetime.now().timestamp() > session['expires_at']:
         return redirect('/refresh-token')
 
-    headers = {
-        'Authorization': f"Bearer {session['access_token']}"
-    }
+    sp = spotipy.Spotify(auth=session['access_token'])
 
-    # playlist_response = requests.get(
-    #     API_BASE_URL + 'me/playlists', headers=headers)
-    # playlists = playlist_response.json()
+    exec(open('setupSchema.py').read())
 
-    # get playlist ids from the response, then iterate over them and make new requestsss
-    # /playlists/{playlist_id}/tracks
-
-    # then for each track (or many at once using get Tracks'?) do
-    # /audio-features
-    #
-
-    # will it work this way?
-    # we will ~likely~ need to find some way to pass the json response into a seperate file
-    # and handle the actual parsing of the data & inserting to sql in there.
-    # if not, i guess we could do it all in this script?
-    stored_tracks = set()
-    # playlists = set()
-
-    # ??????? can we connect here???
     connection = mysql.connector.connect(
         user='root', password='123456', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
-    user_response = get_user(headers)
-    # with open("userResponse.json", "w") as outfile:
-    #     json.dump(user_response, outfile)
-    user_dict = json.loads(user_response)
-    insertUser(connection, cursor, user_dict['id'], user_dict['display_name'])
-    playlists_response = get_playlists(headers)
-    playlists = playlists_response['items']
-    # with open("playlistResponse.json", "w") as outfile:
-    #     json.dump(playlist_response, outfile)
-    # for each playlist id, request every track on that playlist
-    # for playlist in playlist_response['items']:
-    #     tracks_response = get_tracks(headers, playlist['id'])
-    #     with open("tracksResponse.json", "w") as outfile:
-    #         json.dump(tracks_response, outfile)
-
-    # playlist_dict = json.loads(playlist_response)
-    # for item in items (this should iterate over every playlist in the object)
+    # use sp to request user, playlists, tracks, audio features
+    # and then after each request, insert to database
+    inserted_users = set()
+    inserted_playlists = set()
+    inserted_tracks = set()
+    try:
+        user = sp.current_user()
+    except spotipy.SpotifyException as error:
+        handle_sp_exception(error)
+    insertUser(inserted_users, connection, cursor,
+               user['id'], user['display_name'])
+    playlists = get_all_playlists(sp)
     for playlist in playlists:
-        # id = playlist_dict['items]['id']
-        # this fn is currently stored in data importer but if this works it would probably make sense to move everything in that file over here
-        insertPlaylist(connection, cursor, playlist['id'],
-                       playlist['name'], user_dict['id'])
-        # tracks_response = get_tracks(headers, playlist['id'])
-        tracks_response = get_tracks(headers, playlist['id'])
-        tracks = tracks_response['items']
-        # tracks_dict = json.loads(tracks_response)
-        for track in tracks:
-            # wait until we have 100 tracks, and then use the Get Tracks' Audio Features endpoint!
-            if track['track']['id'] not in stored_tracks:
-                audio_features_response = get_audio_features(
-                    headers, track['track']['id'])
-                # audio_features = audio_features_response['items']
-                insertTrack(connection, cursor, track['track']['id'], track['track']['name'], track['track']['album']['name'], audio_features_response['danceability'], audio_features_response['duration_ms'], audio_features_response['energy'], audio_features_response['instrumentalness'], audio_features_response['key'],
-                            audio_features_response['liveness'], audio_features_response['loudness'], audio_features_response['mode'], audio_features_response['speechiness'], audio_features_response['tempo'], audio_features_response['time_signature'], audio_features_response['valence'])
-                stored_tracks.add(track['track']['id'])
-            insertPlaylistTracks(connection, cursor,
-                                 playlist['id'], track['track']['id'])
+        playlist_tracks_names = []
+        current_playlist_tracks = set()
+        insertPlaylist(inserted_playlists, connection, cursor,
+                       playlist['id'], playlist['name'], user['id'])
+        # get all tracks from the playlist
+        playlist_tracks = get_all_playlist_tracks(
+            sp, user['id'], playlist['id'])
+        tracks_to_request = dict()
+        for track in playlist_tracks:
+            playlist_tracks_names.append(track['track']['name'])
+            # if track is not in database, add it to the set storing track ids in current playlist
+            # add its information to tracks_to_request
+            if track['track']['id'] not in inserted_tracks:
+                current_playlist_tracks.add(track['track']['id'])
+                track_info = dict(
+                    title=track['track']['name'], album=track['track']['album']['name'])
+                track_data = [track_info]
+                tracks_to_request[track['track']['id']] = track_data
+                # if we've hit the limit of 100 tracks, or if we've gotten through all tracks in the playlist, call API
+                # extract the IDs of the next 100 tracks to request from API
+                # after response, add audio features for each track to tracks_to_request
+                if len(tracks_to_request) == 100 or len(current_playlist_tracks) == playlist['tracks']['total']:
+                    track_ids = tracks_to_request.keys()
+                    tracks_audio_features = sp.audio_features(track_ids)
+                    for key, value, track_features in zip(tracks_to_request.keys(), tracks_to_request.values(), tracks_audio_features):
+                        value.extend([track_features])
+                    for key in tracks_to_request:
+                        insertTrack(inserted_tracks, connection, cursor, key, tracks_to_request[key][TRACK_INFO_INDEX]['title'], tracks_to_request[key][TRACK_INFO_INDEX]['album'], tracks_to_request[key][TRACK_FEATURES_INDEX]['danceability'], tracks_to_request[key][TRACK_FEATURES_INDEX]['duration_ms'], tracks_to_request[key][TRACK_FEATURES_INDEX]['energy'],
+                                    tracks_to_request[key][TRACK_FEATURES_INDEX]['instrumentalness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['key'], tracks_to_request[key][TRACK_FEATURES_INDEX]['liveness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['loudness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['mode'], tracks_to_request[key][TRACK_FEATURES_INDEX]['speechiness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['tempo'], tracks_to_request[key][TRACK_FEATURES_INDEX]['time_signature'], tracks_to_request[key][TRACK_FEATURES_INDEX]['valence'])
+                        insertPlaylistTracks(connection, cursor,
+                                             playlist['id'], key)
+                    tracks_to_request = dict()
+            # if current track HAS been inserted to Tracks from a previous playlist, add new relationship to current playlist
+            # and add it to set of current playlist tracks
+            elif track['track']['id'] not in current_playlist_tracks:
+                current_playlist_tracks.add(track['track']['id'])
+                insertPlaylistTracks(connection, cursor,
+                                     playlist['id'], track['track']['id'])
     cursor.close()
-    return render_template('display.html')
-
-
-# tracks_response = get_tracks(headers, playlist_id)
-# return render_template('display.html')
-
-# maybe here, we could return by calling a function/a different script?
-# so we'd be returning the code(?) for the display page/the page users can interact with to see their data
-# or do that before the return??
+    connection.close()
+    return render_template("display.html")
 
 
 @app.route('/refresh-token')
@@ -222,77 +224,53 @@ def refresh_token():
         return redirect('/display')
 
 
-def get_user(headers):
-    response = requests.get(
-        API_BASE_URL + 'me', headers=headers)
-    user = response.json()
-    return json.dumps(user)
+def get_all_playlists(sp):
+    results = sp.current_user_playlists()
+    playlists = results['items']
+    while results['next']:
+        results = sp.next(results)
+        playlists.extend(results['items'])
+    return playlists
 
 
-def get_playlists(headers):
-    offset = 0
-    playlists_dict = dict()
-    while True:
-        response = requests.get(
-            API_BASE_URL + 'me/playlists?offset=' + str(offset) + '&limit=50', headers=headers)
-        offset += 1
-        json_playlists = json.loads(json.dumps(response.json()))
-        if len(json_playlists['items']) == 0:
-            break
-        playlists_dict.update(json_playlists)
-    return playlists_dict
+def get_all_playlist_tracks(sp, username, playlist_id):
+    results = sp.user_playlist_tracks(username, playlist_id)
+    tracks = results['items']
+    while results['next']:
+        results = sp.next(results)
+        tracks.extend(results['items'])
+    return tracks
 
 
-def get_tracks(headers, playlist_id):
-    # how can we use limit & offset to get ALL items?
-    tracks_dict = dict()
-    response = requests.get(
-        API_BASE_URL + 'playlists/' + playlist_id + '/tracks', headers=headers)
-    json_tracks = json.loads(json.dumps(response.json()))
-    tracks_dict.update(json_tracks)
-    while (tracks_dict['next'] is not None):
-        response = requests.get(tracks_dict['next'], headers=headers)
-        json_tracks = json.loads(json.dumps(response.json()))
-        if len(json_tracks['items']) == 0:
-            break
-        tracks_dict.update(json_tracks)
-    return tracks_dict
-
-    # tracks = json.dumps(response.json())
-    # return json.loads(tracks)
+def handle_sp_exception(error):
+    error_message = ''
+    if error.http_status == 401:
+        error_message = "Authentication error. Check your credentials."
+    elif error.http_status == 429:
+        error_message = "Rate limit exceeded. Wait and try again later."
+    else:
+        error_message = f"An unexpected SpotifyException occured: {error}"
+    return render_template('errorPage.html', error_message=error_message)
 
 
-def get_audio_features(headers, track_id):
-    res = requests.get(
-        API_BASE_URL + 'audio-features/' + track_id, headers=headers).json
-    response_str = json.dumps(res)
-    audio_features_dict = json.loads(response_str)
-    return audio_features_dict
-
-
-def insertUser(connection, cursor, username, name):
+def insertUser(inserted_users, connection, cursor, username, name):
     query_string = "INSERT INTO Users VALUES (%s, %s)"
     try:
         cursor.execute(query_string, (username, name))
         connection.commit()
+        inserted_users.add(username)
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
 
 
-def insertPlaylist(connection, cursor, id, name, username):
+def insertPlaylist(inserted_playlists, connection, cursor, id, name, username):
     query_string = "INSERT INTO Playlists VALUES (%s, %s, %s)"
     try:
         cursor.execute(query_string, (id, name, username))
         connection.commit()
+        inserted_playlists.add(id)
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
-        print("failed on insertPlaylist: id: " + id + " name: " + name)
-
-# not done this one
-
-# save everything into a file!!!! then import the data from that file
-# also pick only the relevant attributes probably
-# maybe try 2 accounts
 
 
 def insertPlaylistTracks(connection, cursor, playlist_id, track_id):
@@ -302,20 +280,27 @@ def insertPlaylistTracks(connection, cursor, playlist_id, track_id):
         connection.commit()
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
-        print("failed on insertPlaylistTrack: playlist_id: " +
-              playlist_id + " track_id: " + track_id)
 
 
-def insertTrack(connection, cursor, id, title, album, danceability, duration, energy, instrumentalness, key, liveness, loudness, mode, speechiness, tempo, time_signature, valence):
+def insertTrack(inserted_tracks, connection, cursor, id, title, album, danceability, duration, energy, instrumentalness, key, liveness, loudness, mode, speechiness, tempo, time_signature, valence):
     query_string = "INSERT INTO Tracks VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
     try:
         cursor.execute(query_string, (id, title, album, danceability, duration, energy, instrumentalness,
                        key, liveness, loudness, mode, speechiness, tempo, time_signature, valence))
         connection.commit()
+        inserted_tracks.add(id)
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
-        print("failed on insertTrack: id: " + id + " title: " + title)
 
 
-if __name__ == '__main__':
+# def compare_actual_expected_tracks(current_playlist_tracks, playlist_tracks, playlist_name):
+#     expected_playlist_tracks = set()
+#     for track in playlist_tracks:
+#         expected_playlist_tracks.add(track['track']['id'])
+#     missing_in_actual = expected_playlist_tracks - current_playlist_tracks
+#     print(
+#         f"Values missing in cpt: {missing_in_actual}")
+
+
+if __name__ == "__main__":
     app.run(host='0.0.0.0', port=3000, debug=True)
