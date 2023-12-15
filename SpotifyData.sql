@@ -12,8 +12,8 @@ CREATE TABLE Users
 DROP TABLE IF EXISTS Tracks;
 CREATE TABLE Tracks
 	(id					VARCHAR(36),
-	 title				VARCHAR(60),
-	 album				VARCHAR(40),
+	 title				VARCHAR(90),
+	 album				VARCHAR(80),
 	 danceability		FLOAT(20, 19),
 	 duration			INT,
 	 energy				FLOAT,
@@ -32,7 +32,7 @@ CREATE TABLE Tracks
 DROP TABLE IF EXISTS Playlists;
 CREATE TABLE Playlists
 	(id				VARCHAR(36),
-	 playlist_name	VARCHAR(60),
+	 playlist_name	VARCHAR(90),
 	 username		VARCHAR(33),
 	 PRIMARY KEY(id),
 	 FOREIGN KEY (username) REFERENCES Users (username)

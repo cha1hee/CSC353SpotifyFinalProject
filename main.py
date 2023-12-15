@@ -25,9 +25,13 @@ SCOPE = 'playlist-read-private,playlist-read-collaborative,user-read-private'
 TRACK_INFO_INDEX = 0
 TRACK_FEATURES_INDEX = 1
 
-PLAYLIST_NAME_MAX_LENGTH = 60
-TRACKS_TITLE_MAX_LENGTH = 60
-TRACKS_ALBUM_MAX_LENGTH = 40
+USERS_USERNAME_MAX_LENGTH = 33
+USERS_NAME_MAX_LENGTH = 33
+PLAYLISTS_ID_MAX_LENGTH = 36
+PLAYLISTS_NAME_MAX_LENGTH = 90
+TRACKS_ID_MAX_LENGTH = 36
+TRACKS_TITLE_MAX_LENGTH = 90
+TRACKS_ALBUM_MAX_LENGTH = 80
 
 
 # class User:
@@ -155,6 +159,7 @@ def get_display():
     inserted_users = set()
     inserted_playlists = set()
     inserted_tracks = set()
+    playlist_dropdown = []
     user = None
     playlists = None
     playlist_tracks = None
@@ -164,16 +169,19 @@ def get_display():
         user = sp.current_user()
     except spotipy.SpotifyException as error:
         handle_sp_exception(error)
-    insertUser(inserted_users, connection, cursor,
-               user['id'], user['display_name'])
+    if (user is not None) and (user['id'] not in inserted_users):
+        insert_user(inserted_users, connection, cursor,
+                    user['id'], user['display_name'])
     try:
         playlists = get_all_playlists(sp)
     except spotipy.SpotifyException as error:
         handle_sp_exception(error)
     for playlist in playlists:
+        if (playlist is not None) and (playlist['id'] not in inserted_playlists):
+            insert_playlist(inserted_playlists, connection, cursor,
+                            playlist['id'], playlist['name'], user['id'])
+            playlist_dropdown.append(playlist['name'])
         current_playlist_tracks = set()
-        insertPlaylist(inserted_playlists, connection, cursor,
-                       playlist['id'], playlist['name'], user['id'])
         # get all tracks from the playlist
         try:
             playlist_tracks = get_all_playlist_tracks(
@@ -182,7 +190,7 @@ def get_display():
             handle_sp_exception(error)
         tracks_to_request = dict()
         for track in playlist_tracks:
-            if track['track'] is None:
+            if (track['track'] is None):
                 break
             # if track is not in database, add it to the set storing track ids in current playlist
             # add its information to tracks_to_request
@@ -204,20 +212,59 @@ def get_display():
                     for key, value, track_features in zip(tracks_to_request.keys(), tracks_to_request.values(), tracks_audio_features):
                         value.extend([track_features])
                     for key in tracks_to_request:
-                        insertTrack(inserted_tracks, connection, cursor, key, tracks_to_request[key][TRACK_INFO_INDEX]['title'], tracks_to_request[key][TRACK_INFO_INDEX]['album'], tracks_to_request[key][TRACK_FEATURES_INDEX]['danceability'], tracks_to_request[key][TRACK_FEATURES_INDEX]['duration_ms'], tracks_to_request[key][TRACK_FEATURES_INDEX]['energy'],
-                                    tracks_to_request[key][TRACK_FEATURES_INDEX]['instrumentalness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['key'], tracks_to_request[key][TRACK_FEATURES_INDEX]['liveness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['loudness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['mode'], tracks_to_request[key][TRACK_FEATURES_INDEX]['speechiness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['tempo'], tracks_to_request[key][TRACK_FEATURES_INDEX]['time_signature'], tracks_to_request[key][TRACK_FEATURES_INDEX]['valence'])
-                        insertPlaylistTracks(connection, cursor,
-                                             playlist['id'], key)
+                        insert_track(inserted_tracks, connection, cursor, key, tracks_to_request[key][TRACK_INFO_INDEX]['title'], tracks_to_request[key][TRACK_INFO_INDEX]['album'], tracks_to_request[key][TRACK_FEATURES_INDEX]['danceability'], tracks_to_request[key][TRACK_FEATURES_INDEX]['duration_ms'], tracks_to_request[key][TRACK_FEATURES_INDEX]['energy'],
+                                     tracks_to_request[key][TRACK_FEATURES_INDEX]['instrumentalness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['key'], tracks_to_request[key][TRACK_FEATURES_INDEX]['liveness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['loudness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['mode'], tracks_to_request[key][TRACK_FEATURES_INDEX]['speechiness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['tempo'], tracks_to_request[key][TRACK_FEATURES_INDEX]['time_signature'], tracks_to_request[key][TRACK_FEATURES_INDEX]['valence'])
+                        insert_playlist_tracks(connection, cursor,
+                                               playlist['id'], key)
                     tracks_to_request = dict()
             # if current track HAS been inserted to Tracks from a previous playlist, add new relationship to current playlist
             # and add it to set of current playlist tracks
             elif track['track']['id'] not in current_playlist_tracks:
                 current_playlist_tracks.add(track['track']['id'])
-                insertPlaylistTracks(connection, cursor,
-                                     playlist['id'], track['track']['id'])
+                insert_playlist_tracks(connection, cursor,
+                                       playlist['id'], track['track']['id'])
     cursor.close()
     connection.close()
-    return render_template("display.html")
+    return render_template("display.html", playlist_dropdown=playlist_dropdown)
+
+
+@app.route('/query', methods=['POST'])
+def query():
+    playlist_name = request.form['playlist']
+    query_result = query_playlist_tracks(playlist_name)
+    # could seperate into different variables and pass those into the html
+    # like danceability, etc
+    return render_template('display.html', data=query_result)
+
+
+def query_playlist_tracks(playlist_name):
+    connection = mysql.connector.connect(
+        user='root', password='', host='localhost', database='SpotifyData')
+    cursor = connection.cursor()
+    query_string = '''
+    SELECT PlaylistTracks.playlist_id, AVG(Tracks.danceability),AVG(Tracks.valence), AVG(Tracks.liveness), AVG(Tracks.energy), AVG(Tracks.speechiness) FROM (PlaylistTracks, Tracks)
+	WHERE track_id = Tracks.id AND Playlists.name = %s
+    GROUP BY playlist_id;
+    '''
+    cursor.execute(query_string, (playlist_name))
+    # QUERY GOES HERE – FORMATTED THE WAY WE WANT
+    # fetchall returns a list of tuples
+    cursor.execute("")
+    result = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return result
+
+
+@app.route('/playlist-display', methods='GET')
+def playlist_display():
+    connection = mysql.connector.connect(
+        user='root', password='', host='localhost', database='SpotifyData')
+    cursor = connection.cursor()
+
+    cursor.close()
+    connection.close()
+    return render_template("playlist-display.html")
 
 
 @app.route('/refresh-token')
@@ -271,28 +318,32 @@ def handle_sp_exception(error):
     return render_template('errorPage.html', error_message=error_message)
 
 
-def insertUser(inserted_users, connection, cursor, username, name):
+def insert_user(inserted_users, connection, cursor, username, name):
     query_string = "INSERT INTO Users VALUES (%s, %s)"
+    fit_username = fit_string_before_insert(
+        username, USERS_USERNAME_MAX_LENGTH)
+    fit_name = fit_string_before_insert(name, USERS_NAME_MAX_LENGTH)
     try:
-        cursor.execute(query_string, (username, name))
+        cursor.execute(query_string, (fit_username, fit_name))
         connection.commit()
         inserted_users.add(username)
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
 
 
-def insertPlaylist(inserted_playlists, connection, cursor, id, name, username):
+def insert_playlist(inserted_playlists, connection, cursor, id, name, username):
     query_string = "INSERT INTO Playlists VALUES (%s, %s, %s)"
-    name = fit_string_before_insert(name, PLAYLIST_NAME_MAX_LENGTH)
+    fit_id = fit_string_before_insert(id, PLAYLISTS_ID_MAX_LENGTH)
+    fit_name = fit_string_before_insert(name, PLAYLISTS_NAME_MAX_LENGTH)
     try:
-        cursor.execute(query_string, (id, name, username))
+        cursor.execute(query_string, (fit_id, fit_name, username))
         connection.commit()
         inserted_playlists.add(id)
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
 
 
-def insertPlaylistTracks(connection, cursor, playlist_id, track_id):
+def insert_playlist_tracks(connection, cursor, playlist_id, track_id):
     query_string = "INSERT INTO PlaylistTracks VALUES (%s, %s)"
     try:
         cursor.execute(query_string, (playlist_id, track_id))
@@ -301,31 +352,25 @@ def insertPlaylistTracks(connection, cursor, playlist_id, track_id):
         print("Failed inserting tuple: {}".format(error_descriptor))
 
 
-def insertTrack(inserted_tracks, connection, cursor, id, title, album, danceability, duration, energy, instrumentalness, key, liveness, loudness, mode, speechiness, tempo, time_signature, valence):
+def insert_track(inserted_tracks, connection, cursor, id, title, album, danceability, duration, energy, instrumentalness, key, liveness, loudness, mode, speechiness, tempo, time_signature, valence):
     query_string = "INSERT INTO Tracks VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-    title = fit_string_before_insert(title, TRACKS_TITLE_MAX_LENGTH)
-    album = fit_string_before_insert(album, TRACKS_ALBUM_MAX_LENGTH)
+    fit_id = fit_string_before_insert(id, TRACKS_ID_MAX_LENGTH)
+    fit_title = fit_string_before_insert(title, TRACKS_TITLE_MAX_LENGTH)
+    fit_album = fit_string_before_insert(album, TRACKS_ALBUM_MAX_LENGTH)
     try:
-        cursor.execute(query_string, (id, title, album, danceability, duration, energy, instrumentalness,
+        cursor.execute(query_string, (fit_id, fit_title, fit_album, danceability, duration, energy, instrumentalness,
                        key, liveness, loudness, mode, speechiness, tempo, time_signature, valence))
         connection.commit()
         inserted_tracks.add(id)
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
+        print("album length: ", len(album), " && title len: ", len(title))
 
 
 def fit_string_before_insert(str, max_length):
-    fit_str = (str[:max_length + 2] +
-               '..') if len(str) > max_length + 2 else str
+    fit_str = (str[:max_length - 2] +
+               '..') if len(str) > max_length else str
     return fit_str
-
-# def compare_actual_expected_tracks(current_playlist_tracks, playlist_tracks, playlist_name):
-#     expected_playlist_tracks = set()
-#     for track in playlist_tracks:
-#         expected_playlist_tracks.add(track['track']['id'])
-#     missing_in_actual = expected_playlist_tracks - current_playlist_tracks
-#     print(
-#         f"Values missing in cpt: {missing_in_actual}")
 
 
 if __name__ == "__main__":
