@@ -151,6 +151,7 @@ def get_display():
     inserted_users = set()
     inserted_playlists = set()
     inserted_tracks = set()
+    user=dict()
     try:
         user = sp.current_user()
     except spotipy.SpotifyException as error:
