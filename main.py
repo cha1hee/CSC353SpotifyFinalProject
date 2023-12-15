@@ -144,7 +144,7 @@ def get_display():
     exec(open('setupSchema.py').read())
 
     connection = mysql.connector.connect(
-        user='root', password='', host='localhost', database='SpotifyData')
+        user='root', password='123456', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
     # use sp to request user, playlists, tracks, audio features
     # and then after each request, insert to database

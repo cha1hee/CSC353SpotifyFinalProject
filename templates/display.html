@@ -12,183 +12,94 @@
     />
   </head>
 
-  <body>
-    <div class="container">
-      <div class="row" style="height: 30px;"></div>
-      <div class="row">
+  <body onload()="getPlaylistNames()">
+    <div class="container-gx0">
+      <!-- <div class="row" style="height: 30px;"></div> -->
+      <div class="row" id='title'> <h1>Sound Mate Spotify</h1></div>
+      <div class="row" id='w'>
         <div class="col-2"></div>
-        <div class="col-8"> 
-          <h1>Sound Mate Spotify</h1>
-          playlist to analyze:
-          <input type="text">
+        <div class="col-8">
+          Choose which playlsit to analyze:
+          <div class="dropdown">
+            <button class="dropbtn">Select</button>
+            <div class="dropdown-content">
+              <a href="#">Link 1</a>
+              <a href="#">Link 2</a>
+              <a href="#">Link 3</a>
+            </div>
+          </div>
         </div>
         <div class="col-2"></div>
+      </div>
+      <div class="row" id="nav-bar">
+        <ul>
+          <li><a href="#gen">General</a></li>
+          <li><a href="#dance">Danceability</a></li>
+          <li><a href="#valence">valence</a></li>
+          <li><a href="#liveness">Liveness</a></li>
+          <li><a href="#energy">Energy</a></li>
+          <li><a href="#speechiness">Speechiness</a></li>
+        </ul>
+      </div>
+      <div class="row" id='content'>
+        <div id="gen">
+          <h2>General Overview</h2>
+        </div>
+        <div class="row" id="dance">
+          <div class="col" id="d1">
+            <h2>Danceability</h2>
+          </div>
+          <div class="col" id="d2">sdf</div>
+        </div>
+        <div class="row" id="valence">
+            <div class="col" id="v1">
+              <h2>Valence</h2>
+            </div>
+            <div class="col" id="v2">ff</div>
+        </div>
+        <div class="row" id="liveness">
+          <div class="col" id="l1">
+            <h2>Liveness</h2>
+          </div>
+          <div class="col" id="l2"></div>
+        </div>
+        <div class="row" id="energy">
+          <div class="col" id="e1">
+            <h2>Energy</h2>
+          </div>
+          <div class="col" id="e2">ff</div>
+        </div>
+        <div class="row" id="speechiness">
+          <div class="col" id="s1">
+            <h2>Speechiness</h2>
+          </div>
+          <div class="col" id="s2"></div>
+        </div>
       </div>
     </div>
 
   </body>
 
   <script>
-    var tournamentQueryData;
+    	function getPlaylistNames() {
+		const responsePromise = fetch("/playlist?name", {
+			// get all the names in playlist table"
+			method: "GET",
+			headers: {
+				"Content-type": "application/json; charset=UTF-8"
+			}
+		});
 
-    function fetchPlayerData() {
-      let playerName = document.getElementById("name").value;
-      let searchParams = "/player?" + new URLSearchParams({ name: playerName });
-
-      const responsePromise = fetch(searchParams, {
-        method: "GET",
-        headers: {
-          "Content-type": "application/json; charset=UTF-8",
-        },
-      });
-      responsePromise.then(
-        // Fulfilled
-        async (response) => {
-          document.getElementById("player-table").style.visibility = "visible";
-          populatePlayerTable(await response.json());
-        },
-        // Error
-        (error) => {
-          alert("Cannot obtain player information");
-        }
-      );
-    }
-
-    function fetchTournamentData() {
-      let tournamentYear = document.getElementById("tourn_date").value;
-      let searchParams =
-        "/tournament?" + new URLSearchParams({ tourn_date: tournamentYear });
-
-      const responsePromise = fetch(searchParams, {
-        method: "GET",
-        headers: {
-          "Content-type": "application/json; charset=UTF-8",
-        },
-      });
-      responsePromise.then(
-        // Fulfilled
-        async (response) => {
-          document.getElementById("tournament-table").style.visibility =
-            "visible";
-          tournamentQueryData = await response.json();
-          populateTournamentTable(tournamentQueryData);
-        },
-        // Error
-        (error) => {
-          alert("Cannot obtain tournaments");
-        }
-      );
-    }
-
-    function fetchAggregateStatistics() {
-      let name = document.getElementById("player-name").value;
-      let startDate = document.getElementById("start-date").value;
-      let endDate = document.getElementById("end-date").value;
-      let searchParams =
-        "/statistics?" +
-        new URLSearchParams({
-          player_name: name,
-          start_date: startDate,
-          end_date: endDate,
-        });
-
-      const responsePromise = fetch(searchParams, {
-        method: "GET",
-        headers: {
-          "Content-type": "application/json; charset=UTF-8",
-        },
-      });
-      responsePromise.then(
-        // Fulfilled
-        async (response) => {
-          document.getElementById("statistics-table").style.visibility =
-            "visible";
-          populateStatsTable(await response.json());
-        },
-        // Error
-        (error) => {
-          alert("Cannot obtain tournaments");
-        }
-      );
-    }
-
-    function populatePlayerTable(results) {
-      const playerTableBody = document.getElementById("player-table-body");
-
-      results.forEach((element) => {
-        let row = document.createElement("tr");
-        const cell = document.createElement("td");
-        for (attribute in element) {
-          const cell = document.createElement("td");
-          const cellText = document.createTextNode(element[attribute]);
-          cell.appendChild(cellText);
-          row.appendChild(cell);
-        }
-        playerTableBody.appendChild(row);
-      });
-    }
-
-    function populateTournamentTable(results) {
-      const tournamentTableBody = document.getElementById(
-        "tournament-table-body"
-      );
-      tournamentTableBody.innerHTML = "";
-      results.forEach((element) => {
-        let row = document.createElement("tr");
-        const cell = document.createElement("td");
-        for (attribute in element) {
-          const cell = document.createElement("td");
-          const cellText = document.createTextNode(element[attribute]);
-          cell.appendChild(cellText);
-          row.appendChild(cell);
-        }
-        tournamentTableBody.appendChild(row);
-      });
-    }
-
-    function sortTournamentDataByAttribute(attribute, direction) {
-      if (tournamentQueryData != undefined) {
-        const tournamentTableBody = document.getElementById(
-          "tournament-table-body"
-        );
-        if (direction == "asc") {
-          tournamentQueryData.sort(function (a, b) {
-            if (a[attribute] > b[attribute]) {
-              return 1;
-            }
-            if (a[attribute] < b[attribute]) {
-              return -1;
-            }
-            return 0;
-          });
-        } else {
-          tournamentQueryData.sort(function (a, b) {
-            if (b[attribute] < a[attribute]) {
-              return -1;
-            }
-            if (b[attribute] < a[attribute]) {
-              return 1;
-            }
-            return 0;
-          });
-        }
-        populateTournamentTable(tournamentQueryData);
-      }
-    }
-
-    function populateStatsTable(results) {
-      const statsTableBody = document.getElementById("statistics-table-body");
-      let row = document.createElement("tr");
-      const cell = document.createElement("td");
-      results[0].forEach((element) => {
-        for (attribute in element) {
-          const cell = document.createElement("td");
-          const cellText = document.createTextNode(element[attribute]);
-          cell.appendChild(cellText);
-          row.appendChild(cell);
-        }
-      });
-      statsTableBody.appendChild(row);
-    }
+		responsePromise.then(
+			// Fulfilled
+			async (response) => {
+				populateList(await response.json())
+			},
+			// Error
+			(error) => {
+				alert("Cannot obtain playlists")
+			})
+		console.log('testing that it works for non list');
+	}
   </script>
 </html>
