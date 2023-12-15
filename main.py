@@ -20,10 +20,14 @@ AUTH_URL = 'https://accounts.spotify.com/authorize'
 TOKEN_URL = 'https://accounts.spotify.com/api/token'
 API_BASE_URL = 'https://accounts.spotify.com'
 
-SCOPE = 'playlist-modify-private,playlist-modify-public,user-top-read'
+SCOPE = 'playlist-read-private,playlist-read-collaborative,user-read-private'
 
 TRACK_INFO_INDEX = 0
 TRACK_FEATURES_INDEX = 1
+
+PLAYLIST_NAME_MAX_LENGTH = 60
+TRACKS_TITLE_MAX_LENGTH = 60
+TRACKS_ALBUM_MAX_LENGTH = 40
 
 
 # class User:
@@ -144,31 +148,42 @@ def get_display():
     exec(open('setupSchema.py').read())
 
     connection = mysql.connector.connect(
-        user='root', password='123456', host='localhost', database='SpotifyData')
+        user='root', password='', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
     # use sp to request user, playlists, tracks, audio features
     # and then after each request, insert to database
     inserted_users = set()
     inserted_playlists = set()
     inserted_tracks = set()
+    user = None
+    playlists = None
+    playlist_tracks = None
+    tracks_audio_features = None
+
     try:
         user = sp.current_user()
     except spotipy.SpotifyException as error:
         handle_sp_exception(error)
     insertUser(inserted_users, connection, cursor,
                user['id'], user['display_name'])
-    playlists = get_all_playlists(sp)
+    try:
+        playlists = get_all_playlists(sp)
+    except spotipy.SpotifyException as error:
+        handle_sp_exception(error)
     for playlist in playlists:
-        playlist_tracks_names = []
         current_playlist_tracks = set()
         insertPlaylist(inserted_playlists, connection, cursor,
                        playlist['id'], playlist['name'], user['id'])
         # get all tracks from the playlist
-        playlist_tracks = get_all_playlist_tracks(
-            sp, user['id'], playlist['id'])
+        try:
+            playlist_tracks = get_all_playlist_tracks(
+                sp, user['id'], playlist['id'])
+        except spotipy.SpotifyException as error:
+            handle_sp_exception(error)
         tracks_to_request = dict()
         for track in playlist_tracks:
-            playlist_tracks_names.append(track['track']['name'])
+            if track['track'] is None:
+                break
             # if track is not in database, add it to the set storing track ids in current playlist
             # add its information to tracks_to_request
             if track['track']['id'] not in inserted_tracks:
@@ -182,7 +197,10 @@ def get_display():
                 # after response, add audio features for each track to tracks_to_request
                 if len(tracks_to_request) == 100 or len(current_playlist_tracks) == playlist['tracks']['total']:
                     track_ids = tracks_to_request.keys()
-                    tracks_audio_features = sp.audio_features(track_ids)
+                    try:
+                        tracks_audio_features = sp.audio_features(track_ids)
+                    except spotipy.SpotifyException as error:
+                        handle_sp_exception(error)
                     for key, value, track_features in zip(tracks_to_request.keys(), tracks_to_request.values(), tracks_audio_features):
                         value.extend([track_features])
                     for key in tracks_to_request:
@@ -265,6 +283,7 @@ def insertUser(inserted_users, connection, cursor, username, name):
 
 def insertPlaylist(inserted_playlists, connection, cursor, id, name, username):
     query_string = "INSERT INTO Playlists VALUES (%s, %s, %s)"
+    name = fit_string_before_insert(name, PLAYLIST_NAME_MAX_LENGTH)
     try:
         cursor.execute(query_string, (id, name, username))
         connection.commit()
@@ -284,6 +303,8 @@ def insertPlaylistTracks(connection, cursor, playlist_id, track_id):
 
 def insertTrack(inserted_tracks, connection, cursor, id, title, album, danceability, duration, energy, instrumentalness, key, liveness, loudness, mode, speechiness, tempo, time_signature, valence):
     query_string = "INSERT INTO Tracks VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    title = fit_string_before_insert(title, TRACKS_TITLE_MAX_LENGTH)
+    album = fit_string_before_insert(album, TRACKS_ALBUM_MAX_LENGTH)
     try:
         cursor.execute(query_string, (id, title, album, danceability, duration, energy, instrumentalness,
                        key, liveness, loudness, mode, speechiness, tempo, time_signature, valence))
@@ -292,6 +313,11 @@ def insertTrack(inserted_tracks, connection, cursor, id, title, album, danceabil
     except mysql.connector.Error as error_descriptor:
         print("Failed inserting tuple: {}".format(error_descriptor))
 
+
+def fit_string_before_insert(str, max_length):
+    fit_str = (str[:max_length + 2] +
+               '..') if len(str) > max_length + 2 else str
+    return fit_str
 
 # def compare_actual_expected_tracks(current_playlist_tracks, playlist_tracks, playlist_name):
 #     expected_playlist_tracks = set()
