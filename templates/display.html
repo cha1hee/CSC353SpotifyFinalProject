@@ -3,7 +3,7 @@
   <head>
     <title>CSC353 Final Project</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="/styles.css" />
+    <link rel="stylesheet" href="../styles.css" />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -12,7 +12,7 @@
     />
   </head>
 
-  <body onload()="getPlaylistNames()">
+  <body>
     <div class="container-gx0">
       <!-- <div class="row" style="height: 30px;"></div> -->
       <div class="row" id="title"><h1>Sound Mate Spotify</h1></div>
@@ -20,14 +20,11 @@
         <div class="col-2"></div>
         <div class="col-8">
           Choose which playlsit to analyze:
-          <div class="dropdown">
-            <button class="dropbtn">Select</button>
-            <div class="dropdown-content" id="dropdown-content">
-              <a href="#">Link 1</a>
-              <a href="#">Link 2</a>
-              <a href="#">Link 3</a>
-            </div>
-          </div>
+          <form action="/query" method="post">
+            <label for="dropdown">Select a playlist to analyze:</label>
+            <select id="dropdown" name="selected-value"></select>
+            <input type="submit" value="Submit" />
+          </form>
         </div>
         <div class="col-2"></div>
       </div>
@@ -77,22 +74,40 @@
         </div>
       </div>
     </div>
+    <div id="data">{{ data }}</div>
   </body>
 
   <script>
-    var playlists = "{{ playlist_dropdown }}";
-
-    document.addEventListener('DOMContentLoaded', function() {
-      var dropdownContent = document.getElementById('dropdown-content');
+    var dropdownContent = document.getElementById("dropdown");
+    // if select has no options, or if new playlist data is being passed into the display file,
+    // update the options
+    if (dropdownContent.innerHTML === '' && {{ json_playlist_dropdown_items|tojson|safe }} != undefined) {
+      const playlistDropdownItems = {{ json_playlist_dropdown_items|tojson|safe }};
+      const playlistDropdownItemsMap = JSON.parse(playlistDropdownItems);
       dropdownContent.innerHTML = '';
-      playlists.forEach(element => {
-        var option = document.createElement('a');
-        option.href = '#';
-        option.textContext = element;
-        option.id = element;
+
+      for (const key in playlistDropdownItemsMap) {
+        var dropdownContent = document.getElementById("dropdown");
+        var option = document.createElement("option");
+        option.value = playlistDropdownItemsMap[key];
+        option.text = key;
         dropdownContent.appendChild(option);
-      })
+      }
     }
+
+    /*
+    addEventListener("DOMContentLoaded", (event) => {});
+    onDOMContentLoaded = (event) => {
+      let dropdownContent = document.getElementById("dropdown");
+      dropdownContent.innerHTML = "";
+      playlist_dropdown_items_map.forEach((playlist_name, playlist_id) => {
+        var option = document.createElement("option");
+        option.textContext = playlist_name;
+        option.id = playlist_id;
+        dropdownContent.appendChild(option);
+      });
+    };
+    */
 
     /*
     function fetchPlaylistTrackFeatures() {
@@ -120,8 +135,6 @@
     }
     */
 
-
     // how do we pass in the playlist name here?
-    fetch('/query').then(response => response.text())
   </script>
 </html>

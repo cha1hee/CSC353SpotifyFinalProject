@@ -7,6 +7,7 @@ import mysql.connector
 from datetime import datetime
 import random
 import string
+import json
 
 app = Flask(__name__)
 app.secret_key = ''.join(random.choices(
@@ -159,7 +160,7 @@ def get_display():
     inserted_users = set()
     inserted_playlists = set()
     inserted_tracks = set()
-    playlist_dropdown = []
+    playlist_dropdown_items = dict()
     user = None
     playlists = None
     playlist_tracks = None
@@ -180,7 +181,7 @@ def get_display():
         if (playlist is not None) and (playlist['id'] not in inserted_playlists):
             insert_playlist(inserted_playlists, connection, cursor,
                             playlist['id'], playlist['name'], user['id'])
-            playlist_dropdown.append(playlist['name'])
+            playlist_dropdown_items[playlist['name']] = playlist['id']
         current_playlist_tracks = set()
         # get all tracks from the playlist
         try:
@@ -225,46 +226,44 @@ def get_display():
                                        playlist['id'], track['track']['id'])
     cursor.close()
     connection.close()
-    return render_template("display.html", playlist_dropdown=playlist_dropdown)
+    json_playlist_dropdown_items = json.dumps(playlist_dropdown_items)
+    return render_template("display.html", json_playlist_dropdown_items=json_playlist_dropdown_items, data=None)
 
 
 @app.route('/query', methods=['POST'])
 def query():
-    playlist_name = request.form['playlist']
-    query_result = query_playlist_tracks(playlist_name)
+    playlist_id = request.form.get('selected-value')
+    query_result = query_playlist_tracks(playlist_id)
     # could seperate into different variables and pass those into the html
     # like danceability, etc
-    return render_template('display.html', data=query_result)
+    return render_template('display.html', json_playlist_dropdown_items=None, data=query_result)
 
 
-def query_playlist_tracks(playlist_name):
+def query_playlist_tracks(playlist_id):
     connection = mysql.connector.connect(
         user='root', password='', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
-    query_string = '''
-    SELECT PlaylistTracks.playlist_id, AVG(Tracks.danceability),AVG(Tracks.valence), AVG(Tracks.liveness), AVG(Tracks.energy), AVG(Tracks.speechiness) FROM (PlaylistTracks, Tracks)
-	WHERE track_id = Tracks.id AND Playlists.name = %s
-    GROUP BY playlist_id;
-    '''
-    cursor.execute(query_string, (playlist_name))
+    query_params = []
+    query_params.append(playlist_id)
+    query_string = "SELECT PlaylistTracks.playlist_id, AVG(Tracks.danceability),AVG(Tracks.valence), AVG(Tracks.liveness), AVG(Tracks.energy), AVG(Tracks.speechiness) FROM (PlaylistTracks, Tracks, Playlists) WHERE track_id = Tracks.id AND playlist_id = Playlists.id AND playlist_id = (%s) GROUP BY playlist_id;"
+    cursor.execute(query_string, (query_params))
     # QUERY GOES HERE – FORMATTED THE WAY WE WANT
     # fetchall returns a list of tuples
-    cursor.execute("")
     result = cursor.fetchall()
     cursor.close()
     connection.close()
     return result
 
 
-@app.route('/playlist-display', methods='GET')
-def playlist_display():
-    connection = mysql.connector.connect(
-        user='root', password='', host='localhost', database='SpotifyData')
-    cursor = connection.cursor()
+# @app.route('/playlist-display')
+# def playlist_display():
+#     connection = mysql.connector.connect(
+#         user='root', password='', host='localhost', database='SpotifyData')
+#     cursor = connection.cursor()
 
-    cursor.close()
-    connection.close()
-    return render_template("playlist-display.html")
+#     cursor.close()
+#     connection.close()
+#     return render_template("playlist-display.html")
 
 
 @app.route('/refresh-token')
