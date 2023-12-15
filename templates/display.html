@@ -3,7 +3,7 @@
   <head>
     <title>CSC353 Final Project</title>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.0/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -15,8 +15,8 @@
   <body onload()="getPlaylistNames()">
     <div class="container-gx0">
       <!-- <div class="row" style="height: 30px;"></div> -->
-      <div class="row" id='title'> <h1>Sound Mate Spotify</h1></div>
-      <div class="row" id='w'>
+      <div class="row" id="title"><h1>Sound Mate Spotify</h1></div>
+      <div class="row" id="w">
         <div class="col-2"></div>
         <div class="col-8">
           Choose which playlsit to analyze:
@@ -41,7 +41,7 @@
           <li><a href="#speechiness">Speechiness</a></li>
         </ul>
       </div>
-      <div class="row" id='content'>
+      <div class="row" id="content">
         <div id="gen">
           <h2>General Overview</h2>
         </div>
@@ -52,10 +52,10 @@
           <div class="col" id="d2">sdf</div>
         </div>
         <div class="row" id="valence">
-            <div class="col" id="v1">
-              <h2>Valence</h2>
-            </div>
-            <div class="col" id="v2">ff</div>
+          <div class="col" id="v1">
+            <h2>Valence</h2>
+          </div>
+          <div class="col" id="v2">ff</div>
         </div>
         <div class="row" id="liveness">
           <div class="col" id="l1">
@@ -77,29 +77,29 @@
         </div>
       </div>
     </div>
-
   </body>
 
   <script>
-    	function getPlaylistNames() {
-		const responsePromise = fetch("/playlist?name", {
-			// get all the names in playlist table"
-			method: "GET",
-			headers: {
-				"Content-type": "application/json; charset=UTF-8"
-			}
-		});
+    function getPlaylistNames() {
+      const responsePromise = fetch("/playlist?name", {
+        // get all the names in playlist table"
+        method: "GET",
+        headers: {
+          "Content-type": "application/json; charset=UTF-8",
+        },
+      });
 
-		responsePromise.then(
-			// Fulfilled
-			async (response) => {
-				populateList(await response.json())
-			},
-			// Error
-			(error) => {
-				alert("Cannot obtain playlists")
-			})
-		console.log('testing that it works for non list');
-	}
+      responsePromise.then(
+        // Fulfilled
+        async (response) => {
+          populateList(await response.json());
+        },
+        // Error
+        (error) => {
+          alert("Cannot obtain playlists");
+        }
+      );
+      console.log("testing that it works for non list");
+    }
   </script>
 </html>
