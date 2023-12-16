@@ -14,22 +14,19 @@
 
   </head>
 
-  <body onload()="getPlaylistNames()">
-    <div class="container-fluid">
+  <body>
+    <div class="container-gx0">
       <!-- <div class="row" style="height: 30px;"></div> -->
       <div class="row" id="title"><h1>Sound Mate Spotify</h1></div>
       <div class="row" id="w">
         <div class="col-2"></div>
         <div class="col-8">
           Choose which playlsit to analyze:
-          <div class="dropdown">
-            <button class="dropbtn">Select</button>
-            <div class="dropdown-content">
-              <a href="#">Playlist 1</a>
-              <a href="#">Playlist 2</a>
-              <a href="#">Playlist 3</a>
-            </div>
-          </div>
+          <form action="/query" method="post">
+            <label for="dropdown">Select a playlist to analyze:</label>
+            <select id="dropdown" name="selected-value"></select>
+            <input type="submit" value="Submit" />
+          </form>
         </div>
         <div class="col-2"></div>
       </div>
@@ -80,6 +77,9 @@
       </div>
     </div>
     <div id="idforthis"></div>
+
+    <div id="data">{{ data }}</div>
+  </body>
 
     </body>
 
@@ -253,27 +253,65 @@
       //    .attr("height", function(d) { return (danceabilityHeight*.7) - yScale(d); });  
     </script>
 
-    <script>
-      function getPlaylistNames() {
-        const responsePromise = fetch("/playlist?name", {
-          // get all the names in playlist table"
-          method: "GET",
-          headers: {
-            "Content-type": "application/json; charset=UTF-8",
-          },
-        });
 
-        responsePromise.then(
-          // Fulfilled
-          async (response) => {
-            populateList(await response.json());
-          },
-          // Error
-          (error) => {
-            alert("Cannot obtain playlists");
-          }
-        );
-        console.log("testing that it works for non list");
+  <script>
+    var dropdownContent = document.getElementById("dropdown");
+    // if select has no options, or if new playlist data is being passed into the display file,
+    // update the options
+    if (dropdownContent.innerHTML === '' && {{ json_playlist_dropdown_items|tojson|safe }} != undefined) {
+      var playlistDropdownItems = {{ json_playlist_dropdown_items|tojson|safe }};
+      var playlistDropdownItemsMap = JSON.parse(playlistDropdownItems);
+      dropdownContent.innerHTML = '';
+
+      for (const key in playlistDropdownItemsMap) {
+        var dropdownContent = document.getElementById("dropdown");
+        var option = document.createElement("option");
+        option.value = playlistDropdownItemsMap[key];
+        option.text = key;
+        dropdownContent.appendChild(option);
       }
+    }
+
+    /*
+    addEventListener("DOMContentLoaded", (event) => {});
+    onDOMContentLoaded = (event) => {
+      let dropdownContent = document.getElementById("dropdown");
+      dropdownContent.innerHTML = "";
+      playlist_dropdown_items_map.forEach((playlist_name, playlist_id) => {
+        var option = document.createElement("option");
+        option.textContext = playlist_name;
+        option.id = playlist_id;
+        dropdownContent.appendChild(option);
+      });
+    };
+    */
+
+    /*
+    function fetchPlaylistTrackFeatures() {
+      let selected = document.getElementById("").value;
+      let startDate = document.getElementById("start-date").value;
+      let endDate = document.getElementById("end-date").value;
+      let searchParams = "/statistics?" + new URLSearchParams({player_name: name, start_date: startDate, end_date: endDate});
+
+      const responsePromise = fetch(searchParams, {
+        method: "GET",
+        headers: {
+          "Content-type": "application/json; charset=UTF-8"
+        }
+      });
+      responsePromise.then(
+        // Fulfilled
+        async (response) => {
+          document.getElementById("statistics-table").style.visibility = "visible";
+          populateStatsTable(await response.json());
+        },
+        // Error
+        (error) => {
+          alert("Cannot obtain tournaments")
+        })
+    }
+    */
+
+    // how do we pass in the playlist name here?
   </script>
 </html>
