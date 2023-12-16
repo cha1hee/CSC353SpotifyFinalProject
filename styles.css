@@ -62,13 +62,13 @@
 
   #content{
     position: relative; 
-    top: 75px;
+    top: 180px;
     z-index: -2;
   }
 
   #nav-bar{
     position: fixed;
-    top: 135px;
+    top: 125px;
     width: 100%;
   }
 

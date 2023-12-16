@@ -17,8 +17,8 @@ app.secret_key = ''.join(random.choices(
 
 load_dotenv()
 
-CLIENT_ID = os.getenv("CLIENT_ID")
-CLIENT_SECRET = os.getenv("CLIENT_SECRET")
+CLIENT_ID = 'f25ba6368fd6455c8d0da51c7ad1b0a0'
+CLIENT_SECRET = '3fce4b7126f3432195118f66269b34f2'
 REDIRECT_URI = 'http://localhost:3000/callback'
 
 AUTH_URL = 'https://accounts.spotify.com/authorize'
@@ -159,7 +159,7 @@ def get_display():
     exec(open('setupSchema.py').read())
 
     connection = mysql.connector.connect(
-        user='root', password='', host='localhost', database='SpotifyData')
+        user='root', password='123456', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
     # use sp to request user, playlists, tracks, audio features
     # and then after each request, insert to database
@@ -255,7 +255,7 @@ def query():
 
 def query_playlist_names_for_dropdown():
     connection = mysql.connector.connect(
-        user='root', password='', host='localhost', database='SpotifyData')
+        user='root', password='123456', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
     query_string = "SELECT playlist_name, id FROM Playlists;"
     cursor.execute(query_string)
@@ -267,7 +267,7 @@ def query_playlist_names_for_dropdown():
 
 def query_playlist_tracks_features(playlist_id):
     connection = mysql.connector.connect(
-        user='root', password='', host='localhost', database='SpotifyData')
+        user='root', password='123456', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
     query_params = []
     query_params.append(playlist_id)
@@ -283,7 +283,7 @@ def query_playlist_tracks_features(playlist_id):
 
 def query_all_tracks_features():
     connection = mysql.connector.connect(
-        user='root', password='', host='localhost', database='SpotifyData')
+        user='root', password='123456', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
     query_string = "SELECT AVG(Tracks.danceability),AVG(Tracks.valence), AVG(Tracks.liveness), AVG(Tracks.energy), AVG(Tracks.speechiness) FROM Tracks;"
     cursor.execute(query_string)
