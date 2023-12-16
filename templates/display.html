@@ -82,8 +82,8 @@
     // if select has no options, or if new playlist data is being passed into the display file,
     // update the options
     if (dropdownContent.innerHTML === '' && {{ json_playlist_dropdown_items|tojson|safe }} != undefined) {
-      const playlistDropdownItems = {{ json_playlist_dropdown_items|tojson|safe }};
-      const playlistDropdownItemsMap = JSON.parse(playlistDropdownItems);
+      var playlistDropdownItems = {{ json_playlist_dropdown_items|tojson|safe }};
+      var playlistDropdownItemsMap = JSON.parse(playlistDropdownItems);
       dropdownContent.innerHTML = '';
 
       for (const key in playlistDropdownItemsMap) {

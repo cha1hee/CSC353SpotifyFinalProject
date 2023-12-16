@@ -8,13 +8,17 @@ from datetime import datetime
 import random
 import string
 import json
+from dotenv import load_dotenv
+import os
 
 app = Flask(__name__)
 app.secret_key = ''.join(random.choices(
     string.ascii_uppercase + string.ascii_lowercase, k=5))
 
-CLIENT_ID = 'f25ba6368fd6455c8d0da51c7ad1b0a0'
-CLIENT_SECRET = '3fce4b7126f3432195118f66269b34f2'
+load_dotenv()
+
+CLIENT_ID = os.getenv("CLIENT_ID")
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 REDIRECT_URI = 'http://localhost:3000/callback'
 
 AUTH_URL = 'https://accounts.spotify.com/authorize'
@@ -135,13 +139,13 @@ def callback():
         session['expires_at'] = datetime.now().timestamp() + \
             token_info['expires_in']
 
-        return redirect('/display')
+        return render_template('provideUsername.html')
 
 # add try-except blocks for inserting playlists, tracks, and playlist tracks
 # also wrap the api requests in if-statement checking that the id is not already in the database – it shouldn't be, but whatever
 
 
-@app.route("/display")
+@app.route("/display", methods=['POST'])
 def get_display():
     if 'access_token' not in session:
         return redirect('/login')
@@ -149,6 +153,8 @@ def get_display():
         return redirect('/refresh-token')
 
     sp = spotipy.Spotify(auth=session['access_token'])
+
+    provided_user_id = request.form.get('username')
 
     exec(open('setupSchema.py').read())
 
@@ -160,21 +166,22 @@ def get_display():
     inserted_users = set()
     inserted_playlists = set()
     inserted_tracks = set()
-    playlist_dropdown_items = dict()
-    user = None
-    playlists = None
-    playlist_tracks = None
-    tracks_audio_features = None
+    playlist_dropdown_items = {'All Tracks': 'all-tracks'}
+    # user = None
+    # playlists = None
+    # playlist_tracks = None
+    # tracks_audio_features = None
 
     try:
-        user = sp.current_user()
+        # user = sp.current_user()
+        user = sp.user(provided_user_id)
     except spotipy.SpotifyException as error:
         handle_sp_exception(error)
     if (user is not None) and (user['id'] not in inserted_users):
         insert_user(inserted_users, connection, cursor,
                     user['id'], user['display_name'])
     try:
-        playlists = get_all_playlists(sp)
+        playlists = get_all_playlists(sp, provided_user_id)
     except spotipy.SpotifyException as error:
         handle_sp_exception(error)
     for playlist in playlists:
@@ -232,14 +239,33 @@ def get_display():
 
 @app.route('/query', methods=['POST'])
 def query():
+    playlist_dropdown_items = {'All Tracks': 'all-tracks'}
+    playlist_options_result = query_playlist_names_for_dropdown()
+    playlist_dropdown_items.update(playlist_options_result)
+    json_playlist_dropdown_items = json.dumps(playlist_dropdown_items)
     playlist_id = request.form.get('selected-value')
-    query_result = query_playlist_tracks(playlist_id)
+    if (playlist_id == 'all-tracks'):
+        query_result = query_all_tracks_features()
+    else:
+        query_result = query_playlist_tracks_features(playlist_id)
     # could seperate into different variables and pass those into the html
     # like danceability, etc
-    return render_template('display.html', json_playlist_dropdown_items=None, data=query_result)
+    return render_template('display.html', json_playlist_dropdown_items=json_playlist_dropdown_items, data=query_result)
 
 
-def query_playlist_tracks(playlist_id):
+def query_playlist_names_for_dropdown():
+    connection = mysql.connector.connect(
+        user='root', password='', host='localhost', database='SpotifyData')
+    cursor = connection.cursor()
+    query_string = "SELECT playlist_name, id FROM Playlists;"
+    cursor.execute(query_string)
+    result = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return dict(result)
+
+
+def query_playlist_tracks_features(playlist_id):
     connection = mysql.connector.connect(
         user='root', password='', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
@@ -249,6 +275,18 @@ def query_playlist_tracks(playlist_id):
     cursor.execute(query_string, (query_params))
     # QUERY GOES HERE – FORMATTED THE WAY WE WANT
     # fetchall returns a list of tuples
+    result = cursor.fetchall()
+    cursor.close()
+    connection.close()
+    return result
+
+
+def query_all_tracks_features():
+    connection = mysql.connector.connect(
+        user='root', password='', host='localhost', database='SpotifyData')
+    cursor = connection.cursor()
+    query_string = "SELECT AVG(Tracks.danceability),AVG(Tracks.valence), AVG(Tracks.liveness), AVG(Tracks.energy), AVG(Tracks.speechiness) FROM Tracks;"
+    cursor.execute(query_string)
     result = cursor.fetchall()
     cursor.close()
     connection.close()
@@ -285,11 +323,11 @@ def refresh_token():
         session['expires_at'] = datetime.now().timestamp() + \
             new_token_info['expires_in']
 
-        return redirect('/display')
+        return render_template('provideUsername.html')
 
 
-def get_all_playlists(sp):
-    results = sp.current_user_playlists()
+def get_all_playlists(sp, user_id):
+    results = sp.user_playlists(user_id)
     playlists = results['items']
     while results['next']:
         results = sp.next(results)
