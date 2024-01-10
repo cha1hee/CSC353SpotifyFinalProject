@@ -156,92 +156,85 @@ def get_display():
 
     provided_user_id = request.form.get('username')
 
-    # exec(open('setupSchema.py').read())
+    exec(open('setupSchema.py').read())
 
     connection = mysql.connector.connect(
         user='root', password='', host='localhost', database='SpotifyData')
     cursor = connection.cursor()
-    # # use sp to request user, playlists, tracks, audio features
-    # # and then after each request, insert to database
-    # inserted_users = set()
-    # inserted_playlists = set()
-    # inserted_tracks = set()
-    # playlist_dropdown_items = {'All Tracks': 'all-tracks'}
-    # # user = None
-    # # playlists = None
-    # # playlist_tracks = None
-    # # tracks_audio_features = None
-
-    # try:
-    #     # user = sp.current_user()
-    #     user = sp.user(provided_user_id)
-    # except spotipy.SpotifyException as error:
-    #     handle_sp_exception(error)
-    # if (user is not None) and (user['id'] not in inserted_users):
-    #     insert_user(inserted_users, connection, cursor,
-    #                 user['id'], user['display_name'])
-    # try:
-    #     playlists = get_all_playlists(sp, provided_user_id)
-    # except spotipy.SpotifyException as error:
-    #     handle_sp_exception(error)
-    # for playlist in playlists:
-    #     if (playlist is not None) and (playlist['id'] not in inserted_playlists):
-    #         insert_playlist(inserted_playlists, connection, cursor,
-    #                         playlist['id'], playlist['name'], user['id'])
-    #         playlist_dropdown_items[playlist['name']] = playlist['id']
-    #     current_playlist_tracks = set()
-    #     # get all tracks from the playlist
-    #     try:
-    #         playlist_tracks = get_all_playlist_tracks(
-    #             sp, user['id'], playlist['id'])
-    #     except spotipy.SpotifyException as error:
-    #         handle_sp_exception(error)
-    #     tracks_to_request = dict()
-    #     for track in playlist_tracks:
-    #         if (track['track'] is None):
-    #             break
-    #         # if track is not in database, add it to the set storing track ids in current playlist
-    #         # add its information to tracks_to_request
-    #         if track['track']['id'] not in inserted_tracks:
-    #             current_playlist_tracks.add(track['track']['id'])
-    #             track_info = dict(
-    #                 title=track['track']['name'], album=track['track']['album']['name'])
-    #             track_data = [track_info]
-    #             tracks_to_request[track['track']['id']] = track_data
-    #             # if we've hit the limit of 100 tracks, or if we've gotten through all tracks in the playlist, call API
-    #             # extract the IDs of the next 100 tracks to request from API
-    #             # after response, add audio features for each track to tracks_to_request
-    #             if len(tracks_to_request) == 100 or len(current_playlist_tracks) == playlist['tracks']['total']:
-    #                 track_ids = tracks_to_request.keys()
-    #                 try:
-    #                     tracks_audio_features = sp.audio_features(track_ids)
-    #                 except spotipy.SpotifyException as error:
-    #                     print(error)
-    #                     handle_sp_exception(error)
-    #                 for key, value, track_features in zip(tracks_to_request.keys(), tracks_to_request.values(), tracks_audio_features):
-    #                     value.extend([track_features])
-    #                 for key in tracks_to_request:
-    #                     insert_track(inserted_tracks, connection, cursor, key, tracks_to_request[key][TRACK_INFO_INDEX]['title'], tracks_to_request[key][TRACK_INFO_INDEX]['album'], tracks_to_request[key][TRACK_FEATURES_INDEX]['danceability'], tracks_to_request[key][TRACK_FEATURES_INDEX]['duration_ms'], tracks_to_request[key][TRACK_FEATURES_INDEX]['energy'],
-    #                                  tracks_to_request[key][TRACK_FEATURES_INDEX]['instrumentalness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['key'], tracks_to_request[key][TRACK_FEATURES_INDEX]['liveness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['loudness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['mode'], tracks_to_request[key][TRACK_FEATURES_INDEX]['speechiness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['tempo'], tracks_to_request[key][TRACK_FEATURES_INDEX]['time_signature'], tracks_to_request[key][TRACK_FEATURES_INDEX]['valence'])
-    #                     insert_playlist_tracks(connection, cursor,
-    #                                            playlist['id'], key)
-    #                 tracks_to_request = dict()
-    #         # if current track HAS been inserted to Tracks from a previous playlist, add new relationship to current playlist
-    #         # and add it to set of current playlist tracks
-    #         elif track['track']['id'] not in current_playlist_tracks:
-    #             current_playlist_tracks.add(track['track']['id'])
-    #             insert_playlist_tracks(connection, cursor,
-    #                                    playlist['id'], track['track']['id'])
-    # cursor.close()
-    # connection.close()
-    # json_playlist_dropdown_items = json.dumps(playlist_dropdown_items)
+    # use sp to request user, playlists, tracks, audio features
+    # and then after each request, insert to database
+    inserted_users = set()
+    inserted_playlists = set()
+    inserted_tracks = set()
     playlist_dropdown_items = {'All Tracks': 'all-tracks'}
-    playlist_options_result = query_playlist_names_for_dropdown()
-    playlist_dropdown_items.update(playlist_options_result)
-    json_playlist_dropdown_items = json.dumps(playlist_dropdown_items)
+    # user = None
+    # playlists = None
+    # playlist_tracks = None
+    # tracks_audio_features = None
+
+    try:
+        # user = sp.current_user()
+        user = sp.user(provided_user_id)
+    except spotipy.SpotifyException as error:
+        handle_sp_exception(error)
+    if (user is not None) and (user['id'] not in inserted_users):
+        insert_user(inserted_users, connection, cursor,
+                    user['id'], user['display_name'])
+    try:
+        playlists = get_all_playlists(sp, provided_user_id)
+    except spotipy.SpotifyException as error:
+        handle_sp_exception(error)
+    for playlist in playlists:
+        if (playlist is not None) and (playlist['id'] not in inserted_playlists):
+            insert_playlist(inserted_playlists, connection, cursor,
+                            playlist['id'], playlist['name'], user['id'])
+            playlist_dropdown_items[playlist['name']] = playlist['id']
+        current_playlist_tracks = set()
+        # get all tracks from the playlist
+        try:
+            playlist_tracks = get_all_playlist_tracks(
+                sp, user['id'], playlist['id'])
+        except spotipy.SpotifyException as error:
+            handle_sp_exception(error)
+        tracks_to_request = dict()
+        for track in playlist_tracks:
+            if (track['track'] is None):
+                break
+            # if track is not in database, add it to the set storing track ids in current playlist
+            # add its information to tracks_to_request
+            if track['track']['id'] not in inserted_tracks:
+                current_playlist_tracks.add(track['track']['id'])
+                track_info = dict(
+                    title=track['track']['name'], album=track['track']['album']['name'])
+                track_data = [track_info]
+                tracks_to_request[track['track']['id']] = track_data
+                # if we've hit the limit of 100 tracks, or if we've gotten through all tracks in the playlist, call API
+                # extract the IDs of the next 100 tracks to request from API
+                # after response, add audio features for each track to tracks_to_request
+                if len(tracks_to_request) == 100 or len(current_playlist_tracks) == playlist['tracks']['total']:
+                    track_ids = tracks_to_request.keys()
+                    try:
+                        tracks_audio_features = sp.audio_features(track_ids)
+                    except spotipy.SpotifyException as error:
+                        handle_sp_exception(error)
+                    for key, value, track_features in zip(tracks_to_request.keys(), tracks_to_request.values(), tracks_audio_features):
+                        value.extend([track_features])
+                    for key in tracks_to_request:
+                        insert_track(inserted_tracks, connection, cursor, key, tracks_to_request[key][TRACK_INFO_INDEX]['title'], tracks_to_request[key][TRACK_INFO_INDEX]['album'], tracks_to_request[key][TRACK_FEATURES_INDEX]['danceability'], tracks_to_request[key][TRACK_FEATURES_INDEX]['duration_ms'], tracks_to_request[key][TRACK_FEATURES_INDEX]['energy'],
+                                     tracks_to_request[key][TRACK_FEATURES_INDEX]['instrumentalness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['key'], tracks_to_request[key][TRACK_FEATURES_INDEX]['liveness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['loudness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['mode'], tracks_to_request[key][TRACK_FEATURES_INDEX]['speechiness'], tracks_to_request[key][TRACK_FEATURES_INDEX]['tempo'], tracks_to_request[key][TRACK_FEATURES_INDEX]['time_signature'], tracks_to_request[key][TRACK_FEATURES_INDEX]['valence'])
+                        insert_playlist_tracks(connection, cursor,
+                                               playlist['id'], key)
+                    tracks_to_request = dict()
+            # if current track HAS been inserted to Tracks from a previous playlist, add new relationship to current playlist
+            # and add it to set of current playlist tracks
+            elif track['track']['id'] not in current_playlist_tracks:
+                current_playlist_tracks.add(track['track']['id'])
+                insert_playlist_tracks(connection, cursor,
+                                       playlist['id'], track['track']['id'])
     cursor.close()
     connection.close()
-    return render_template("display.html", json_playlist_dropdown_items=json_playlist_dropdown_items, json_audio_data=None)
+    json_playlist_dropdown_items = json.dumps(playlist_dropdown_items)
+    return render_template("display.html", json_playlist_dropdown_items=json_playlist_dropdown_items, data=None)
 
 
 @app.route('/query', methods=['POST'])
@@ -255,9 +248,9 @@ def query():
         query_result = query_all_tracks_features()
     else:
         query_result = query_playlist_tracks_features(playlist_id)
-    query_result_list = list(query_result[0])
-    json_audio_data = json.dumps(query_result_list)
-    return render_template('display.html', json_playlist_dropdown_items=json_playlist_dropdown_items, json_audio_data=json_audio_data)
+    # could seperate into different variables and pass those into the html
+    # like danceability, etc
+    return render_template('display.html', json_playlist_dropdown_items=json_playlist_dropdown_items, data=query_result)
 
 
 def query_playlist_names_for_dropdown():
@@ -278,7 +271,7 @@ def query_playlist_tracks_features(playlist_id):
     cursor = connection.cursor()
     query_params = []
     query_params.append(playlist_id)
-    query_string = "SELECT AVG(Tracks.danceability),AVG(Tracks.valence), AVG(Tracks.liveness), AVG(Tracks.energy), AVG(Tracks.speechiness) FROM (PlaylistTracks, Tracks, Playlists) WHERE track_id = Tracks.id AND playlist_id = Playlists.id AND playlist_id = (%s) GROUP BY playlist_id;"
+    query_string = "SELECT PlaylistTracks.playlist_id, AVG(Tracks.danceability),AVG(Tracks.valence), AVG(Tracks.liveness), AVG(Tracks.energy), AVG(Tracks.speechiness) FROM (PlaylistTracks, Tracks, Playlists) WHERE track_id = Tracks.id AND playlist_id = Playlists.id AND playlist_id = (%s) GROUP BY playlist_id;"
     cursor.execute(query_string, (query_params))
     # QUERY GOES HERE – FORMATTED THE WAY WE WANT
     # fetchall returns a list of tuples
@@ -298,6 +291,17 @@ def query_all_tracks_features():
     cursor.close()
     connection.close()
     return result
+
+
+# @app.route('/playlist-display')
+# def playlist_display():
+#     connection = mysql.connector.connect(
+#         user='root', password='', host='localhost', database='SpotifyData')
+#     cursor = connection.cursor()
+
+#     cursor.close()
+#     connection.close()
+#     return render_template("playlist-display.html")
 
 
 @app.route('/refresh-token')
