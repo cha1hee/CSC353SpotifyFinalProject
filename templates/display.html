@@ -89,13 +89,7 @@
     for(let i = 0; i < features.length; i++){
       point[features[i]] = spiderChartParsedData[i]*10;
       spiderChartData.push(point);
-      console.log('IN LOOOOOOOOP', spiderChartData)
-      if (i = 0) {
-        console.log('ee');
-        break;
-      }
-    }
-    console.log('POSTLOOP', spiderChartData);
+      console.log('IN LOOOOOOOOP', spiderChartData)}
 
 
     // get the data points and push into data
@@ -264,14 +258,6 @@
         return danceabilityHeight * 0.7 - yScale(d);
       });
 
-    //  g.selectAll(".bar")
-    //    .data(dataset1)
-    //    .enter().append("rect")
-    //    .attr("class", "bar")
-    //    .attr("x", function(d) { return xScale(d); })
-    //    .attr("y", function(d) { return yScale(d); })
-    //    .attr("width", xScale.bandwidth())
-    //    .attr("height", function(d) { return (danceabilityHeight*.7) - yScale(d); });
   </script>
 
   <script>
@@ -291,47 +277,5 @@
         dropdownContent.appendChild(option);
       }
     }
-
-    /*
-    addEventListener("DOMContentLoaded", (event) => {});
-    onDOMContentLoaded = (event) => {
-      let dropdownContent = document.getElementById("dropdown");
-      dropdownContent.innerHTML = "";
-      playlist_dropdown_items_map.forEach((playlist_name, playlist_id) => {
-        var option = document.createElement("option");
-        option.textContext = playlist_name;
-        option.id = playlist_id;
-        dropdownContent.appendChild(option);
-      });
-    };
-    */
-
-    /*
-    function fetchPlaylistTrackFeatures() {
-      let selected = document.getElementById("").value;
-      let startDate = document.getElementById("start-date").value;
-      let endDate = document.getElementById("end-date").value;
-      let searchParams = "/statistics?" + new URLSearchParams({player_name: name, start_date: startDate, end_date: endDate});
-
-      const responsePromise = fetch(searchParams, {
-        method: "GET",
-        headers: {
-          "Content-type": "application/json; charset=UTF-8"
-        }
-      });
-      responsePromise.then(
-        // Fulfilled
-        async (response) => {
-          document.getElementById("statistics-table").style.visibility = "visible";
-          populateStatsTable(await response.json());
-        },
-        // Error
-        (error) => {
-          alert("Cannot obtain tournaments")
-        })
-    }
-    */
-
-    // how do we pass in the playlist name here?
   </script>
 </html>
