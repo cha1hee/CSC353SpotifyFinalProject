@@ -77,6 +77,188 @@
     <div id="data">{{ data }}</div>
   </body>
 
+  <!-- script for spider plot  -->
+  <script>
+    // example data
+    let features = ["Danceability", "Valence", "Liveness", "Energy", "Speechiness"];
+    let jsonSpiderChartData = {{ json_audio_data|tojson|safe }};
+    let spiderChartParsedData = JSON.parse(jsonSpiderChartData);
+    console.log(spiderChartParsedData[0]);
+    let spiderChartData = [];
+    var point = {};
+    for(let i = 0; i < features.length; i++){
+      point[features[i]] = spiderChartParsedData[i]*10;
+      spiderChartData.push(point);
+      console.log('IN LOOOOOOOOP', spiderChartData)}
+
+
+    // get the data points and push into data
+
+    console.log(spiderChartData)
+    // setting up svg
+    let width = 700;
+    let height = 600;
+    let svg = d3.select("#gen").append("svg")
+        .attr("width", width)
+        .attr("height", height);
+    // plot gridlines
+    let radialScale = d3.scaleLinear()
+        .domain([0,10])
+        .range([0,250]);
+    let ticks = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+    // make the circles to indicate value
+    svg.selectAll("circle")
+        .data(ticks)
+        .join(
+            enter => enter.append("circle")
+                .attr("cx", width / 2)
+                .attr("cy", height / 2)
+                .attr("fill", "none")
+                .attr("stroke", "gray")
+                .attr("r", d=> radialScale(d))
+        );
+    // add labels
+    svg.selectAll(".ticklabel")
+        .data(ticks)
+        .join(
+            enter => enter.append("text")
+                .attr("class", "ticklabel")
+                .attr("x", width / 2 + 5)
+                .attr("y", d => height / 2 - radialScale(d))
+                .text(d => "0.".concat(d.toString()))
+        );
+    // plot axes
+    function angleToCoordinate(angle, value){
+        let x = Math.cos(angle) * radialScale(value);
+        let y = Math.sin(angle) * radialScale(value);
+        return {"x": width / 2 + x, "y": height / 2 - y};
+    }
+    let featureData = features.map((f, i) => {
+        let angle = (Math.PI / 2) + (2 * Math.PI * i / features.length);
+        return {
+            "name": f,
+            "angle": angle,
+            "line_coord": angleToCoordinate(angle, 10),
+            "label_coord": angleToCoordinate(angle, 10.5)
+        };
+    });
+    // draw axis line
+    svg.selectAll("line")
+        .data(featureData)
+        .join(
+            enter => enter.append("line")
+                .attr("x1", width / 2)
+                .attr("y1", height / 2)
+                .attr("x2", d => d.line_coord.x)
+                .attr("y2", d => d.line_coord.y)
+                .attr("stroke", "black")
+        );
+    // draw axis label
+    svg.selectAll(".axislabel")
+        .data(featureData)
+        .join(
+            enter => enter.append("text")
+                .attr("x", d => d.label_coord.x)
+                .attr("y", d => d.label_coord.y)
+                .text(d => d.name)
+        );
+    // plot data
+    let line = d3.line()
+        .x(d => d.x)
+        .y(d => d.y);
+    let colors = ["#3E8914"];
+
+    function getPathCoordinates(data_point){
+        let coordinates = [];
+        for(var i = 0; i< features.length; i++){
+            let ft_name = features[i];
+            let angle = (Math.PI / 2) + (2 * Math.PI * i / features.length);
+            coordinates.push(angleToCoordinate(angle, data_point[ft_name]));
+        }
+        return coordinates;
+    }
+    // draw path between data points
+    svg.selectAll("path")
+        .data(spiderChartData)
+        .join(
+            enter => enter.append("path")
+                .datum(d => getPathCoordinates(d))
+                .attr("d", line)
+                .attr("stroke-width", 3)
+                .attr("stroke", (_, i) => colors[i])
+                .attr("fill", (_, i) => colors[i])
+                .attr("stroke-opacity", 1)
+                .attr("opacity", 0.5)
+        );
+  </script>
+
+  <!-- script for barchart -->
+  <script>
+    var dataset1 = [1, 3, 4, 5, 3, 2, 0, 3, 0, 5]; // this data set changes
+
+    let danceabilityWidth = 350;
+    let danceabilityHeight = 500;
+    let danceabilitySvg = d3
+      .select("#d1")
+      .append("svg")
+      .attr("width", danceabilityWidth)
+      .attr("height", danceabilityHeight);
+
+    var xScale = d3
+      .scaleBand()
+      .domain(d3.range(dataset1.length))
+      .rangeRound([0, danceabilityWidth * 0.7])
+      .paddingInner(0.2);
+    // yScale = d3.scaleLinear().range([(danceabilityHeight*.7), 0]);
+    var yScale = d3
+      .scaleLinear()
+      .domain([0, d3.max(dataset1)])
+      .range([0, danceabilityHeight * 0.7]);
+
+    // var xScale = d3.scaleBand().range([0, danceabilityWidth*.7]).padding(0.3),
+
+    var g = danceabilitySvg
+      .append("g")
+      .attr("transform", "translate(" + 100 + "," + 100 + ")");
+
+    xScale.domain([0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]);
+    yScale.domain([0, 10]); //domain should depend on input
+
+    g.append("g")
+      .attr("transform", "translate(0," + danceabilityHeight * 0.7 + ")")
+      .call(
+        d3.axisBottom(xScale).tickFormat(function (d) {
+          return d;
+        })
+      );
+
+    g.append("g").call(
+      d3
+        .axisLeft(yScale)
+        .tickFormat(function (d) {
+          return "$" + d;
+        })
+        .ticks(4)
+    );
+
+    g.selectAll(".bar")
+      .data(dataset1)
+      .enter()
+      .append("rect")
+      .attr("class", "bar")
+      .attr("x", function (d, i) {
+        i = (i + 1) * 0.1;
+        return xScale(i);
+      })
+      .attr("y", function (d) {
+        return yScale(d);
+      })
+      .attr("width", xScale.bandwidth())
+      .attr("height", function (d) {
+        return danceabilityHeight * 0.7 - yScale(d);
+      });
+  </script>
+
   <script>
     var dropdownContent = document.getElementById("dropdown");
     // if select has no options, or if new playlist data is being passed into the display file,
@@ -94,47 +276,5 @@
         dropdownContent.appendChild(option);
       }
     }
-
-    /*
-    addEventListener("DOMContentLoaded", (event) => {});
-    onDOMContentLoaded = (event) => {
-      let dropdownContent = document.getElementById("dropdown");
-      dropdownContent.innerHTML = "";
-      playlist_dropdown_items_map.forEach((playlist_name, playlist_id) => {
-        var option = document.createElement("option");
-        option.textContext = playlist_name;
-        option.id = playlist_id;
-        dropdownContent.appendChild(option);
-      });
-    };
-    */
-
-    /*
-    function fetchPlaylistTrackFeatures() {
-      let selected = document.getElementById("").value;
-      let startDate = document.getElementById("start-date").value;
-      let endDate = document.getElementById("end-date").value;
-      let searchParams = "/statistics?" + new URLSearchParams({player_name: name, start_date: startDate, end_date: endDate});
-
-      const responsePromise = fetch(searchParams, {
-        method: "GET",
-        headers: {
-          "Content-type": "application/json; charset=UTF-8"
-        }
-      });
-      responsePromise.then(
-        // Fulfilled
-        async (response) => {
-          document.getElementById("statistics-table").style.visibility = "visible";
-          populateStatsTable(await response.json());
-        },
-        // Error
-        (error) => {
-          alert("Cannot obtain tournaments")
-        })
-    }
-    */
-
-    // how do we pass in the playlist name here?
   </script>
 </html>
